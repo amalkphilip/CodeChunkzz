@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auracast Health Hub (Vanilla JS)</title>
+    
+    <!-- Core CSS Styles (Converted from the previous Tailwind-based block) -->
+    <style>
+        /* Define the Inter font family */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        /* Base Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Utility Classes */
+        .antialiased {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .flex { display: flex; }
+        .justify-center { justify-content: center; }
+        .items-center { align-items: center; }
+        .items-start { align-items: flex-start; }
+        .justify-between { justify-content: space-between; }
+        .flex-grow { flex-grow: 1; }
+        .flex-shrink-0 { flex-shrink: 0; }
+
+        /* Layout */
+        .min-h-screen { min-height: 100vh; }
+        .app-container {
+            padding: 1rem; /* p-4 */
+        }
+        @media (min-width: 640px) { /* sm: */
+            .app-container { padding: 1.5rem; } /* sm:p-6 */
+        }
+        @media (min-width: 1024px) { /* lg: */
+            .app-container { padding: 2rem; } /* lg:p-8 */
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem; /* gap-6 */
+        }
+        @media (min-width: 1024px) { /* lg: */
+            .main-grid { grid-template-columns: repeat(3, 1fr); }
+            .lg-col-span-2 { grid-column: span 2 / span 2; }
+        }
+
+        /* Header */
+        .header-main {
+            margin-bottom: 2rem; /* mb-8 */
+            padding: 1rem; /* p-4 */
+            background-color: white; /* bg-white */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+            border-radius: 0.75rem; /* rounded-xl */
+            position: sticky;
+            top: 1rem;
+            z-index: 10; /* z-10 */
+        }
+        .header-title {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 700; /* font-bold */
+            color: #1e3a8a; /* text-indigo-800 */
+        }
+        @media (min-width: 640px) { /* sm: */
+            .header-title { font-size: 1.875rem; } /* sm:text-3xl */
+        }
+        .header-icon {
+            width: 1.75rem; height: 1.75rem; /* w-7 h-7 */
+            margin-right: 0.5rem; /* mr-2 */
+            color: #4f46e5; /* text-indigo-600 */
+        }
+        .header-user-id {
+            font-size: 0.75rem; /* text-xs */
+            color: #6b7280; /* text-gray-500 */
+        }
+        .header-user-id span {
+            margin-left: 0.25rem; /* ml-1 */
+            font-family: monospace; /* font-mono */
+            font-size: 0.75rem; /* text-xs */
+            color: #4f46e5; /* text-indigo-600 */
+            word-break: break-all; /* break-all */
+        }
+
+        /* Card Base */
+        .card-base {
+            background-color: white; /* bg-white */
+            padding: 1.5rem; /* p-6 */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); /* shadow-lg */
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+        .card-tracker {
+            border-top: 4px solid #10b981; /* border-t-4 border-emerald-500 */
+        }
+        .card-analytics {
+            border-top: 4px solid #9333ea; /* border-t-4 border-purple-500 */
+        }
+
+        /* Form/Input */
+        .form-section {
+            margin-bottom: 1rem; /* space-y-4 */
+        }
+        .form-label {
+            display: block;
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+            color: #374151; /* text-gray-700 */
+            margin-bottom: 0.25rem; /* mb-1 */
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.75rem; /* p-3 */
+            border: 1px solid #d1d5db; /* border border-gray-300 */
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: border-color 0.15s, box-shadow 0.15s; /* transition duration-150 */
+            background-color: white;
+            resize: none;
+        }
+        .input-field:focus {
+            border-color: #10b981; /* focus:border-emerald-500 */
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); /* focus:ring-emerald-500 (approx) */
+            outline: none;
+        }
+        
+        .grid-cols-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem; /* gap-4 */
+        }
+
+        /* Button */
+        .btn-primary {
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1rem; /* px-4 py-3 */
+            border: 1px solid transparent;
+            font-size: 1rem; /* text-base */
+            font-weight: 500; /* font-medium */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* shadow-md */
+            color: white;
+            background-color: #059669; /* bg-emerald-600 */
+            transition: background-color 0.15s, opacity 0.15s;
+        }
+        .btn-primary:hover {
+            background-color: #047857; /* hover:bg-emerald-700 */
+        }
+        .btn-primary:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.5); /* focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 */
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* History List */
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 24rem; /* max-h-96 */
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem; /* space-y-3 */
+        }
+        .history-item {
+            padding: 1rem; /* p-4 */
+            background-color: #f9fafb; /* bg-gray-50 */
+            border-radius: 0.75rem; /* rounded-xl */
+            border: 1px solid #e5e7eb; /* border border-gray-200 */
+            transition: box-shadow 0.15s;
+        }
+        .history-item:hover {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* hover:shadow-sm */
+        }
+        .history-header {
+            font-size: 0.875rem; /* text-sm */
+            margin-bottom: 0.25rem; /* mb-1 */
+        }
+        .history-type {
+            font-weight: 700; /* font-bold */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .history-severity {
+            margin-left: 0.5rem; /* ml-2 */
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 600; /* font-semibold */
+            color: #dc2626; /* text-red-600 */
+            padding: 0.25rem 0.5rem; /* p-1 px-2 */
+            background-color: #fee2e2; /* bg-red-100 */
+            border-radius: 9999px; /* rounded-full */
+        }
+        .history-context {
+            font-size: 0.75rem; /* text-xs */
+            color: #4f46e5; /* text-indigo-600 */
+            margin-top: 0.5rem; /* mt-2 */
+            padding: 0.5rem; /* p-2 */
+            background-color: #eef2ff; /* bg-indigo-50 */
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        
+        /* Environmental Status Card */
+        .status-card-base {
+            padding: 1rem; /* p-4 */
+            border-radius: 0.75rem; /* rounded-xl */
+            font-size: 0.875rem; /* text-sm */
+            transition: all 0.3s;
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+        .status-card-header {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            color: white;
+            margin-bottom: 0.5rem; /* mb-2 */
+        }
+        .status-card-text {
+            color: white;
+            font-size: 0.75rem; /* text-xs */
+            opacity: 0.9;
+        }
+        .status-yellow {
+            background-color: #f59e0b; /* bg-yellow-500 */
+        }
+        .status-red { /* Added for Danger/Critical AQI */
+            background-color: #dc2626; /* bg-red-600 */
+        }
+        .status-blue { /* Added for Good AQI */
+            background-color: #2563eb; /* bg-blue-600 */
+        }
+
+        /* Analytics Box */
+        .analytics-insight {
+            padding: 1rem; /* p-4 */
+            background-color: #f3e8ff; /* bg-purple-50 */
+            border-left: 4px solid #a855f7; /* border-l-4 border-purple-400 */
+            border-radius: 0.5rem; /* rounded-lg */
+            margin-bottom: 1rem; /* mb-4 */
+        }
+        .analytics-title {
+            font-weight: 600; /* font-semibold */
+            color: #6d28d9; /* text-purple-700 */
+            margin-bottom: 0.5rem; /* mb-2 */
+        }
+        .analytics-text {
+            font-size: 0.875rem; /* text-sm */
+            color: #7c3aed; /* text-purple-600 */
+        }
+        .analytics-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem; /* space-y-1 */
+            font-size: 0.875rem; /* text-sm */
+            color: #4b5563; /* text-gray-600 */
+            padding: 0.75rem; /* p-3 */
+            background-color: #f9fafb; /* bg-gray-50 */
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        .analytics-list li strong {
+            font-weight: 600; /* font-semibold */
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            margin-top: 1.5rem; /* mt-6 */
+            padding: 0.75rem; /* p-3 */
+            background-color: #fee2e2; /* bg-red-100 */
+            border-left: 4px solid #ef4444; /* border-l-4 border-red-500 */
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        .disclaimer-title {
+            font-weight: 700; /* font-bold */
+            font-size: 0.75rem; /* text-xs */
+            color: #b91c1c; /* text-red-700 */
+        }
+        .disclaimer-text {
+            font-size: 0.75rem; /* text-xs */
+            color: #dc2626; /* text-red-600 */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+
+        /* Alert Component */
+        .health-alert {
+            position: fixed;
+            top: 1rem; /* top-4 */
+            left: 50%;
+            transform: translateX(-50%); /* transform -translate-x-1/2 */
+            z-index: 50; /* z-50 */
+            padding: 1rem; /* p-4 */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.1); /* shadow-2xl */
+            transition: all 0.5s; /* transition-all duration-500 */
+            width: 91.666667%; /* w-11/12 */
+            max-width: 32rem; /* md:max-w-lg (approx) */
+            color: white;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem; /* space-x-3 */
+            opacity: 0;
+            visibility: hidden;
+        }
+        .health-alert.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .health-alert .icon-lg { width: 1.5rem; height: 1.5rem; margin-top: 0.125rem; } /* w-6 h-6 mt-0.5 */
+        .health-alert .title { font-weight: 700; text-transform: uppercase; font-size: 0.875rem; } /* font-bold uppercase text-sm */
+        .health-alert .care-badge {
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 600; /* font-semibold */
+            margin-top: 0.125rem; /* mt-0.5 */
+            padding: 0.125rem 0.5rem; /* px-2 py-0.5 */
+            display: inline-block;
+            border-radius: 9999px;
+            background: white;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .health-alert .text-detail {
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+        .health-alert button {
+            padding: 0.25rem; /* p-1 */
+            border-radius: 9999px;
+            transition: background-color 0.15s;
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .health-alert button:hover {
+            background-color: rgba(255, 255, 255, 0.2); /* hover:bg-white/20 */
+        }
+        .health-alert button svg { width: 1rem; height: 1rem; } /* w-4 h-4 */
+
+
+        /* Alert Color Schemes */
+        .alert-success { background-color: #059669; border-bottom: 4px solid #065f46; } /* bg-green-600 border-green-800 */
+        .alert-warning { background-color: #d97706; border-bottom: 4px solid #b45309; } /* bg-yellow-600 border-yellow-800 */
+        .alert-moderate { background-color: #f97316; border-bottom: 4px solid #ea580c; } /* bg-orange-500 border-orange-700 */
+        .alert-error { background-color: #dc2626; border-bottom: 4px solid #991b1b; } /* bg-red-600 border-red-800 */
+        .alert-danger { background-color: #b91c1c; border-bottom: 4px solid #7f1d1d; } /* bg-red-700 border-red-900 */
+        .alert-info { background-color: #2563eb; border-bottom: 4px solid #1e40af; } /* bg-blue-600 border-blue-800 */
+
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Personalized Health Alerts Container (Simulated Push Notifications) -->
+    <div id="health-alert-container"></div>
+
+    <div id="root" class="min-h-screen app-container" style="background-color: #f9fafb;">
+        <!-- Header will be injected here -->
+        <header id="app-header"></header>
+
+        <main class="main-grid">
+
+            <!-- Column 1: Symptom Tracker & History -->
+            <section id="tracker-section" class="lg-col-span-2">
+                <!-- Symptom Tracker Form & History will be injected here -->
+            </section>
+
+
+            <!-- Column 2: Analytics -->
+            <section id="analytics-section">
+                <!-- Environmental Status Card and Analytics will be injected here -->
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // --- Static Data & Global State ---
+
+        const SYMPTOM_OPTIONS = [
+          'Cough', 'Shortness of breath', 'Wheezing', 'Chest tightness',
+          'Sneezing', 'Itchy eyes', 'Runny nose', 'Rashes', 'Headache', 'Fatigue', 'Other'
+        ];
+        
+        const STATIC_HEALTH_STATUS = {
+            aqiValue: 85,
+            aqiText: "Moderate",
+            primaryPollutant: "Ozone (O₃)",
+            healthRisk: "Sensitive groups should reduce outdoor activity.",
+            colorClass: 'status-yellow', 
+            location: "Koovappally, Kerala, India", // ADDED: Current system location
+            pollutants: {
+              'PM2.5': 28, 
+              'PM10': 55, 
+              'O3': 0.08, 
+              'NO2': 0.03, 
+              'CO': 3.1, 
+              'SO2': 0.005, 
+            },
+            weather: {
+              temp: '22°C',
+              humidity: '65%',
+              wind: '5 mph NW',
+              pollenIndex: 'High',
+            }
+        };
+
+        // Global State (Replaces React's useState)
+        let userId = "local-user-" + Math.random().toString(36).substring(2, 9);
+        let symptoms = [];
+        let newSymptomData = {
+            type: 'Cough',
+            severity: 3,
+            duration: '',
+            notes: '',
+            otherSymptom: '',
+        };
+        let alertMessage = null;
+        let alertTimeout = null;
+        
+        // Global State Setter (Simulating React's setState and useEffect for the alert)
+        function setAlertMessage(message) {
+            alertMessage = message;
+            renderAlert(message);
+        }
+        
+        
+        // --- Icon & SVG Helpers (Using Emojis/SVGs for native rendering) ---
+        
+        const getIconHtml = (name, className, style = {}) => {
+            const styles = Object.entries(style).map(([key, value]) => `${key}:${value}`).join(';');
+
+            switch (name) {
+                case 'HeartPulse': return `<span class="${className}" style="font-size: 1.25rem; ${styles}">❤️</span>`;
+                case 'AirVent': return `<span class="${className}" style="font-size: 1.25rem; ${styles}">💨</span>`;
+                case 'User': return `<span class="${className}" style="font-size: 1rem; ${styles}">👤</span>`;
+                case 'BarChart3': return `<span class="${className}" style="font-size: 1.25rem; ${styles}">📊</span>`;
+                case 'AlertTriangle': 
+                    // SVG for better look in alerts
+                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="${className}" style="${styles}"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.57.103 3.344 1.94 3.344h14.714c1.837 0 2.806-1.774 1.94-3.344L12 2.25 2.697 15.756zM12 15h.007v.008H12z" /></svg>`;
+                case 'CheckCircle': 
+                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="${className}" style="${styles}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                case 'X': 
+                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="${className}" style="${styles}"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
+                default: return '';
+            }
+        }
+
+
+        // --- Data Persistence Functions (Replaces useLocalData) ---
+
+        function loadSymptoms() {
+            try {
+                const saved = localStorage.getItem('auracastSymptoms');
+                symptoms = saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                console.error("Could not load symptoms from localStorage:", e);
+                symptoms = [];
+            }
+        }
+
+        function saveSymptoms(symptomList) {
+            try {
+                localStorage.setItem('auracastSymptoms', JSON.stringify(symptomList));
+            } catch (e) {
+                console.error("Could not save symptoms to localStorage:", e);
+            }
+        }
+        
+        // --- Helper Logic ---
+
+        function isValidDurationFormat(duration) {
+            if (!duration || duration.trim() === '') return false;
+            const descriptiveUnits = /(min|hour|hr|day|week|all day|intermittent|since)/i;
+            return descriptiveUnits.test(duration.trim());
+        }
+
+        function getSmartInsight(symptoms, currentAQI) {
+            if (symptoms.length === 0) {
+                return "Start logging your symptoms now to get immediate analysis linking your health to the current air quality and pollen levels.";
+            }
+
+            const latestSymptom = symptoms[0];
+            const MAX_ENTRIES_FOR_CUMULATIVE = 20;
+            const entriesForAnalysis = symptoms.slice(0, MAX_ENTRIES_FOR_CUMULATIVE);
+            
+            // --- Logic for a Single Symptom Entry (Initial Insight) ---
+            if (entriesForAnalysis.length === 1) {
+                const { type, severity } = latestSymptom;
+                const { pollutants, weather, aqiText } = currentAQI;
+
+                let insight = `**First Entry Insight (Severity ${severity}):** You logged a **${type}** symptom during ${aqiText} air quality at ${currentAQI.location}.`;
+
+                if (['Cough', 'Wheezing', 'Shortness of breath', 'Chest tightness'].includes(type) && pollutants['PM2.5'] > 25) {
+                    insight += ` High levels of **PM2.5 (${pollutants['PM2.5']} µg/m³)** are a possible trigger. Limit strenuous outdoor activity.`;
+                } else if (['Sneezing', 'Itchy eyes', 'Runny nose'].includes(type) && weather.pollenIndex === 'High') {
+                    insight += ` The **High Pollen Index** is the most probable trigger. Consider an antihistamine or eye drops.`;
+                } else if (severity >= 4) {
+                    insight += ` With a severity of **${severity}**, please take immediate steps to reduce your exposure.`;
+                } else {
+                    insight += ` Symptom noted. This initial data point is logged with the environment. Continue tracking to identify patterns.`;
+                }
+                return insight;
+            }
+
+            // --- Logic for Multiple Symptoms (Cumulative Analysis) ---
+            
+            const totalEntries = entriesForAnalysis.length;
+            let totalSeverity = 0;
+            const symptomCounts = {};
+            let highSeverityCount = 0;
+            let highAqiTriggerCount = 0;
+            let pollenTriggerCount = 0;
+
+            for (const symptom of entriesForAnalysis) {
+                totalSeverity += symptom.severity;
+                symptomCounts[symptom.type] = (symptomCounts[symptom.type] || 0) + 1;
+                
+                if (symptom.severity >= 4) {
+                    highSeverityCount++;
+                }
+
+                if (symptom.exposureData.aqiValue > 70) { 
+                    highAqiTriggerCount++;
+                }
+                
+                if (['Sneezing', 'Itchy eyes', 'Runny nose'].includes(symptom.type) && symptom.exposureData.weather.pollenIndex === 'High') {
+                     pollenTriggerCount++;
+                }
+            }
+
+            const averageSeverity = (totalSeverity / totalEntries).toFixed(1);
+            
+            // Find the most common symptom
+            const commonSymptomEntry = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1])[0];
+            const commonSymptomType = commonSymptomEntry[0];
+            const commonSymptomCount = commonSymptomEntry[1];
+
+            let insight = `**Cumulative Analysis (Total Logs: ${totalEntries}):** `;
+
+            // 1. Summary Insight
+            insight += `Your dominant concern is **${commonSymptomType}** (${commonSymptomCount} logs), with an overall average severity of **${averageSeverity}** out of 5. `;
+
+            // 2. Trend Insight
+            if (highSeverityCount > 0.3 * totalEntries) {
+                insight += ` You've reported **${highSeverityCount} high-severity episodes**. This suggests you have acute flare-ups that require close monitoring. `;
+            } else if (averageSeverity < 2.5) {
+                insight += ` Your recent history shows mostly **mild symptoms**, indicating effective management or generally favorable conditions. `;
+            }
+
+            // 3. Environmental Correlation Insight
+            if (highAqiTriggerCount > 0.5 * totalEntries) {
+                insight += ` **Strong Air Quality Link:** Over half (${highAqiTriggerCount} of ${totalEntries}) of your logs occurred when the AQI was moderate or worse. **Managing indoor air quality is your top priority.**`;
+            } else if (pollenTriggerCount > 0) {
+                 insight += ` **Seasonal Trigger Detected:** ${pollenTriggerCount} of your allergy-type symptoms are linked to high pollen days. Prepare for peak pollen seasons.`;
+            } else {
+                insight += ` We're currently building a more precise correlation model. Please continue logging details (notes) to help us refine the pattern.`;
+            }
+
+            return insight;
+        }
+
+
+        // --- Renderer Functions (Replaces React Components) ---
+
+        function renderAlert(message) {
+            const container = document.getElementById('health-alert-container');
+            if (!container) return;
+            
+            if (alertTimeout) {
+                clearTimeout(alertTimeout);
+                alertTimeout = null;
+            }
+
+            if (!message) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const { type, text } = message;
+            
+            let styleClasses = "";
+            let IconName = 'CheckCircle';
+            let title = "Health Alert";
+            let careLevel = "General Monitoring"; 
+            
+            switch (type) {
+              case 'success':
+                styleClasses = "alert-success";
+                IconName = 'CheckCircle';
+                title = "Log Success";
+                careLevel = "Mild Symptom Logged";
+                break;
+              case 'warning':
+                styleClasses = "alert-warning";
+                IconName = 'AlertTriangle';
+                title = "Environmental Warning";
+                careLevel = "Increased Vigilance";
+                break;
+              case 'moderate': 
+                styleClasses = "alert-moderate"; 
+                IconName = 'AlertTriangle';
+                title = "Moderate Symptom Alert";
+                careLevel = "Self-Monitoring Recommended";
+                break;
+              case 'error':
+                styleClasses = "alert-error";
+                IconName = 'X';
+                title = "Input Error";
+                careLevel = "Input Correction Required";
+                break;
+              case 'danger': 
+                styleClasses = "alert-danger"; 
+                IconName = 'AlertTriangle';
+                title = "Critical Health Alert"; 
+                careLevel = "Urgent Attention Advised"; 
+                break;
+              case 'info':
+              default:
+                styleClasses = "alert-info";
+                IconName = 'HeartPulse';
+                title = "Environmental Info";
+                careLevel = "Good Conditions";
+                break;
+            }
+
+            container.innerHTML = `
+                <div class="health-alert ${styleClasses} active">
+                    ${getIconHtml(IconName, 'icon-lg')}
+                    <div class='flex-grow'>
+                        <p class="title">${title}</p>
+                        <p class="care-badge">${careLevel}</p>
+                        <p class="text-detail">${text}</p>
+                    </div>
+                    <button id="alert-close-btn">
+                        ${getIconHtml('X', 'w-4 h-4')}
+                    </button>
+                </div>
+            `;
+            
+            // Add close listener
+            document.getElementById('alert-close-btn').addEventListener('click', () => {
+                setAlertMessage(null);
+            });
+            
+            // Auto-dismiss logic
+            alertTimeout = setTimeout(() => {
+                setAlertMessage(null);
+            }, 8000);
+        }
+
+        function renderHeader(id) {
+            const header = document.getElementById('app-header');
+            if (!header) return;
+            header.className = "header-main flex justify-between items-center";
+            header.innerHTML = `
+                <h1 class="header-title flex items-center">
+                    ${getIconHtml('HeartPulse', 'header-icon')}
+                    Auracast Health Hub
+                </h1>
+                <div class="header-user-id flex items-center">
+                    ${getIconHtml('User', 'mr-1', { width: '1rem', height: '1rem' })}
+                    User ID: <span class="ml-1">${id}</span>
+                </div>
+            `;
+        }
+
+        function renderHistory(symptomList) {
+            const historyListEl = document.getElementById('history-list');
+            const historyContainer = document.getElementById('history-container');
+            if (!historyContainer) return;
+
+            if (symptomList.length === 0) {
+                historyContainer.innerHTML = `<p style="color: #6b7280; font-style: italic;">No symptoms logged yet. Start tracking to build your personal exposure history.</p>`;
+                return;
+            }
+
+            historyContainer.innerHTML = `<ul id="history-list" class="history-list"></ul>`;
+            const listEl = document.getElementById('history-list');
+
+            listEl.innerHTML = symptomList.map(symptom => `
+                <li class="history-item">
+                    <div class="history-header flex justify-between items-start">
+                        <p class="history-type flex items-center">
+                            ${symptom.type} 
+                            <span class='history-severity'>
+                                Severity: ${symptom.severity}
+                            </span>
+                        </p>
+                        <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.125rem;">${symptom.timestamp}</p>
+                    </div>
+                    ${symptom.duration ? `<p style="font-size: 0.75rem; color: #4b5563; margin-bottom: 0.25rem;">Duration: ${symptom.duration}</p>` : ''}
+                    ${symptom.notes ? `<p style="font-size: 0.75rem; font-style: italic; color: #6b7280; margin-bottom: 0.25rem; border-top: 1px solid #f3f4f6; padding-top: 0.25rem; margin-top: 0.25rem;">Notes: ${symptom.notes}</p>` : ''}
+                    
+                    <div class="history-context">
+                        * Context: <span style="font-weight: 600;">${symptom.exposureData.aqiText} (AQI ${symptom.exposureData.aqiValue})</span> in ${symptom.exposureData.location}
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function renderForm() {
+            const trackerSection = document.getElementById('tracker-section');
+            if (!trackerSection) return;
+
+            const isOther = newSymptomData.type === 'Other';
+            
+            trackerSection.innerHTML = `
+                <div class="card-base card-tracker">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center" style="font-size: 1.25rem; color: #1f2937;">
+                        ${getIconHtml('AirVent', 'mr-2', { width: '1.25rem', height: '1.25rem', color: '#10b981' })}
+                        🩺 Health Symptom Tracker (Log)
+                    </h2>
+                    
+                    <form id="symptom-form" class="form-section" style="display: flex; flex-direction: column; gap: 1rem;">
+                        
+                        <!-- Symptom Type and Severity -->
+                        <div class="grid-cols-2">
+                            <div>
+                                <label for="type" class="form-label">Symptom <span style="color: red">*</span></label>
+                                <select id="type" name="type" class="input-field" required>
+                                    ${SYMPTOM_OPTIONS.map(s => 
+                                        `<option value="${s}" ${s === newSymptomData.type ? 'selected' : ''}>${s}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="severity" class="form-label">Severity (1-5) <span style="color: red">*</span></label>
+                                <input id="severity" name="severity" type="number" min="1" max="5" 
+                                    value="${newSymptomData.severity}" class="input-field" required/>
+                            </div>
+                        </div>
+
+                        <!-- Conditional input for 'Other' symptom -->
+                        <div id="other-symptom-input" style="display: ${isOther ? 'block' : 'none'};">
+                            <label for="otherSymptom" class="form-label">Specific Symptom Name <span style="color: red">*</span></label>
+                            <input id="otherSymptom" name="otherSymptom" type="text" 
+                                value="${newSymptomData.otherSymptom}" placeholder="e.g., Joint pain, Hives, etc." class="input-field" ${isOther ? 'required' : ''}/>
+                        </div>
+
+                        <!-- Duration and Notes -->
+                        <div>
+                            <label for="duration" class="form-label">Duration (e.g., "30 mins", "2 hours", "All day") <span style="color: red">*</span></label>
+                            <input id="duration" name="duration" type="text" value="${newSymptomData.duration}" 
+                                placeholder="e.g., '1 hour', 'Intermittent', '3 days'" class="input-field" required/>
+                        </div>
+
+                        <div>
+                            <label for="notes" class="form-label">Notes (Optional)</label>
+                            <textarea id="notes" name="notes" rows="2" 
+                                placeholder="Specific time, location, or medication taken..." class="input-field">${newSymptomData.notes}</textarea>
+                        </div>
+
+                        <button type="submit" id="log-symptom-btn" class="btn-primary">
+                            Log Symptom & Link to Environmental Context
+                        </button>
+                    </form>
+
+                    <h3 class="text-lg font-medium text-gray-700 mt-8 mb-3 border-b pb-2" style="margin-top: 2rem; margin-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; font-size: 1.125rem; font-weight: 500; color: #374151;">Recent History</h3>
+                    <div id="history-container"></div>
+                </div>
+            `;
+            
+            // Attach event listeners after rendering
+            const form = document.getElementById('symptom-form');
+            if (form) {
+                form.addEventListener('submit', handleAddSymptom);
+                form.addEventListener('input', handleFormInput);
+            }
+            // Initial history render
+            renderHistory(symptoms);
+        }
+
+        function renderAnalytics(symptomList, healthStatus) {
+            const section = document.getElementById('analytics-section');
+            if (!section) return;
+
+            // Determine status card color
+            let statusColorClass = 'status-blue';
+            if (healthStatus.aqiValue > 100) {
+                statusColorClass = 'status-red';
+            } else if (healthStatus.aqiValue > 70) {
+                statusColorClass = 'status-yellow';
+            }
+
+            // Determine status card icon
+            const currentAlertIconHtml = getIconHtml(
+                healthStatus.aqiText.includes("Unhealthy") || healthStatus.aqiValue > 70 ? 'AlertTriangle' : 'HeartPulse',
+                'text-white', 
+                { width: '1.5rem', height: '1.5rem' }
+            );
+
+            const smartInsightText = getSmartInsight(symptomList, healthStatus).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+
+            section.innerHTML = `
+                <!-- Environmental Context Header (Static Location) -->
+                <div class="status-card-base ${statusColorClass}">
+                    <h2 class="status-card-header flex items-center">
+                        ${currentAlertIconHtml}
+                        <span style="margin-left: 0.5rem;">Local Air Quality Status</span>
+                    </h2>
+                    <p class="status-card-text">AQI: ${healthStatus.aqiValue} (${healthStatus.aqiText}) | ${healthStatus.healthRisk}</p>
+                </div>
+
+                <!-- Analytics & Smart Insights -->
+                <div class="card-base card-analytics">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center" style="font-size: 1.25rem; color: #1f2937;">
+                        ${getIconHtml('BarChart3', 'mr-2', { width: '1.25rem', height: '1.25rem', color: '#9333ea' })}
+                        📊 Analytics & Smart Insights
+                    </h2>
+                    
+                    <div class="analytics-insight">
+                        <p class="analytics-title">Smart Insight:</p>
+                        <p class="analytics-text">${smartInsightText}</p>
+                    </div>
+
+                    <h3 style="font-size: 1.125rem; font-weight: 500; color: #374151; margin-bottom: 0.75rem;">Today's Environmental Data</h3>
+                    <ul class="analytics-list">
+                        <li><strong>Location:</strong> ${healthStatus.location}</li>
+                        <li><strong>Primary Pollutant:</strong> ${healthStatus.primaryPollutant}</li>
+                        <li><strong>PM2.5:</strong> ${healthStatus.pollutants['PM2.5']} µg/m³</li>
+                        <li><strong>NO2:</strong> ${healthStatus.pollutants['NO2']} ppm</li>
+                        <li><strong>Weather/Pollen:</strong> ${healthStatus.weather.temp}, ${healthStatus.weather.wind} (Pollen: ${healthStatus.weather.pollenIndex})</li>
+                    </ul>
+
+                    <!-- Medical Disclaimer -->
+                    <div class="disclaimer">
+                        <p class="disclaimer-title flex items-center">
+                            ${getIconHtml('AlertTriangle', 'mr-1', { width: '1rem', height: '1rem' })}
+                            Medical Disclaimer
+                        </p>
+                        <p class="disclaimer-text">
+                            Auracast is not a substitute for professional medical diagnosis or advice. Always consult a healthcare provider for any health concerns.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Event Handlers (Replaces React Callbacks) ---
+        
+        // Handle input changes and update the global newSymptomData state
+        function handleFormInput(event) {
+            const { name, value } = event.target;
+            
+            // Update the newSymptomData global state
+            newSymptomData[name] = (name === 'severity' && value !== '') ? parseInt(value) : value;
+
+            // Handle 'Other' selection visibility
+            if (name === 'type') {
+                const otherInputDiv = document.getElementById('other-symptom-input');
+                const otherInputField = document.getElementById('otherSymptom');
+                if (value === 'Other') {
+                    otherInputDiv.style.display = 'block';
+                    otherInputField.setAttribute('required', 'required');
+                } else {
+                    otherInputDiv.style.display = 'none';
+                    otherInputField.removeAttribute('required');
+                    newSymptomData.otherSymptom = ''; // Clear specific symptom if type changes away from 'Other'
+                }
+            }
+        }
+
+        // Handle form submission
+        function handleAddSymptom(e) {
+            e.preventDefault();
+            
+            const severityNum = newSymptomData.severity === '' ? NaN : parseInt(newSymptomData.severity);
+            
+            // Determine the actual symptom type for logging and validation
+            const symptomToLog = newSymptomData.type === 'Other' 
+                ? newSymptomData.otherSymptom.trim() 
+                : newSymptomData.type;
+
+            // 1. Basic Mandatory Field Check
+            if (
+                !symptomToLog || 
+                isNaN(severityNum) || 
+                severityNum < 1 || 
+                severityNum > 5 || 
+                !newSymptomData.duration.trim()
+            ) {
+                const missingDetail = newSymptomData.type === 'Other' && !newSymptomData.otherSymptom.trim()
+                    ? 'the specific Symptom Name'
+                    : 'Symptom Type';
+
+                setAlertMessage({ 
+                    type: 'error', 
+                    text: `Please fill in ${missingDetail}, Severity (1-5), and a descriptive Duration.` 
+                });
+                return;
+            }
+
+            // 2. Duration Format Check
+            if (!isValidDurationFormat(newSymptomData.duration)) {
+                setAlertMessage({
+                    type: 'error',
+                    text: 'Duration requires a specific unit (e.g., "30 mins", "2 hours", "4 days", "1 week") or descriptive phrase like "All day". Please correct.'
+                });
+                return;
+            }
+            
+            // Log the new entry
+            const newEntry = {
+                id: Date.now().toString(),
+                type: symptomToLog, 
+                severity: severityNum,
+                duration: newSymptomData.duration, 
+                notes: newSymptomData.notes, 
+                exposureData: STATIC_HEALTH_STATUS,
+                timestamp: new Date().toLocaleString()
+            };
+            
+            // Update global state and save (max 20 entries)
+            symptoms = [newEntry, ...symptoms].slice(0, 20);
+            saveSymptoms(symptoms);
+            
+            // Reset form fields state
+            newSymptomData.severity = 3;
+            newSymptomData.duration = '';
+            newSymptomData.notes = '';
+            if (newSymptomData.type === 'Other') {
+                newSymptomData.otherSymptom = '';
+            }
+
+            // Determine alert message
+            let alertType = 'success';
+            let alertText = `Symptom "${symptomToLog}" logged successfully and linked to environmental data.`;
+
+            if (severityNum >= 4) {
+                alertType = 'danger'; 
+                alertText = `⚠ High Severity Alert (Level ${severityNum} of 5)! Please reduce strenuous outdoor activity and monitor your condition closely.`;
+            } else if (severityNum === 3) {
+                alertType = 'moderate'; 
+                alertText = `Symptom logged at Moderate Severity (Level 3 of 5). Pay attention to any environmental changes and check the analytics dashboard.`;
+            }
+            
+            setAlertMessage({ type: alertType, text: alertText });
+
+            // Rerender all dynamic parts
+            renderApp();
+            
+            // Ensure the form elements reflect the cleared state
+            document.getElementById('duration').value = newSymptomData.duration;
+            document.getElementById('notes').value = newSymptomData.notes;
+            document.getElementById('severity').value = newSymptomData.severity;
+            if (document.getElementById('otherSymptom')) {
+                document.getElementById('otherSymptom').value = newSymptomData.otherSymptom;
+            }
+        }
+
+        // --- Initialization and Main Render Loop ---
+        
+        function checkAndSetInitialAlert() {
+            // Check current AQI for a default warning
+            let currentAlertType = 'info';
+            let currentAlertText = `Welcome to Auracast. Current location: ${STATIC_HEALTH_STATUS.location}. Air quality is good. Enjoy your day outside!`;
+
+            if (STATIC_HEALTH_STATUS.aqiValue > 100) {
+                currentAlertType = 'danger';
+                currentAlertText = `Critical Air Quality Alert in ${STATIC_HEALTH_STATUS.location}: AQI is ${STATIC_HEALTH_STATUS.aqiValue}! ${STATIC_HEALTH_STATUS.healthRisk}`;
+            } else if (STATIC_HEALTH_STATUS.aqiValue > 75) {
+                currentAlertType = 'warning';
+                currentAlertText = `Air Quality Alert in ${STATIC_HEALTH_STATUS.location}: AQI is ${STATIC_HEALTH_STATUS.aqiValue}. ${STATIC_HEALTH_STATUS.healthRisk}`;
+            }
+            
+            setAlertMessage({ type: currentAlertType, text: currentAlertText });
+        }
+
+        function renderApp() {
+            renderHeader(userId);
+            renderForm();
+            renderAnalytics(symptoms, STATIC_HEALTH_STATUS);
+            // Alert is rendered via setAlertMessage called from checkAndSetInitialAlert
+        }
+
+        function initApp() {
+            loadSymptoms(); // Load state from localStorage
+            renderApp();    // Initial render of the UI
+            checkAndSetInitialAlert(); // Trigger initial environmental alert
+        }
+
+        // Run the initialization function once the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
