@@ -8,7 +8,7 @@
     <!-- Google Maps API Bootstrap Loader -->
     <script>
         (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
-            key: "YOUR_GOOGLE_MAPS_API_KEY", // REPLACE WITH YOUR API KEY
+            key: "AIzaSyBpehSa0BnoNa5BnjVWUBgQdX5Q_WoAYPQ", 
             v: "weekly",
             libraries: ["marker", "places", "geometry"] // Added libraries for future route features
         });
@@ -49,17 +49,76 @@
         .loading { text-align: center; padding: 2rem; }
         .error-message { background: #e74c3c; color: white; padding: 1rem; border-radius: 6px; margin-top: 1rem; }
 
+        /* Green Space Leaderboard Styles */
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .leaderboard-item:hover {
+            background-color: #e9ecef;
+            transform: translateX(3px);
+        }
+        .leaderboard-rank { font-weight: 700; font-size: 1.1rem; color: #2c3e50; min-width: 35px; }
+        .leaderboard-info { flex-grow: 1; }
+        .leaderboard-name { font-weight: 600; }
+        .leaderboard-meta { font-size: 0.8rem; color: #6c757d; }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .main-content { flex-direction: column; }
             .controls-sidebar { width: 100%; max-height: 40vh; }
         }
     </style>
+
+    <style>
+        /* Wind Breeze Effect for the leaf icon */
+        .leaf-icon {
+            display: inline-block; /* Required for transforms to apply */
+            animation: wind-breeze 5s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+
+        @keyframes wind-breeze {
+            0%, 100% { transform: rotate(0deg); }
+            20% { transform: rotate(8deg); }
+            50% { transform: rotate(-6deg); }
+            80% { transform: rotate(4deg); }
+        }
+
+        /* Animation for green space markers appearing on the map */
+        .marker-drop-in {
+            /* cubic-bezier creates a slight bounce effect */
+            animation: drop-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes drop-in {
+            from {
+                opacity: 0;
+                transform: translateY(-25px) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Animation for leaderboard items appearing in the list */
+        .leaderboard-item.animate-in {
+            animation: fade-slide-in 0.5s ease-out forwards;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
         <header class="app-header">
-            <h1>🌿 Air-Safe Route Planner</h1>
+            <h1><span class="leaf-icon">🌿</span> Air-Safe Route Planner</h1>
             <p>Find walking, running, and cycling routes with minimal environmental exposure</p>
         </header>
 
@@ -103,6 +162,7 @@
                     </div>
                 </div>
                 <button id="calculate-route" class="calculate-btn">Calculate Air-Safe Route</button>
+                <button id="find-green-spaces" class="calculate-btn" style="background: #3498db; margin-top: 1rem;">Find Nearby Green Spaces</button>
                 
                 <!-- Information Panels -->
                 <div id="route-info" class="route-info hidden">
@@ -111,6 +171,10 @@
                     <div class="route-stats">
                         <div id="selected-route-stats"></div>
                     </div>
+                </div>
+                <div id="green-space-leaderboard" class="route-info hidden">
+                    <h3>Nearby Green Spaces</h3>
+                    <div id="leaderboard-list"></div>
                 </div>
                 <div id="loading" class="loading hidden">
                     <div class="spinner"></div>
@@ -123,6 +187,7 @@
             <div class="map-container">
                 <div id="map"></div>
                 <div class="map-controls">
+                    <button id="goto-location-btn" class="map-control-btn">Go to My Location</button>
                     <button id="reset-map" class="map-control-btn">Reset View</button>
                 </div>
             </div>
@@ -137,12 +202,28 @@
         let directionsService;
         let directionsRenderer;
         let routeRenderers = []; // To store a renderer for each route
+        let greenSpaceMarkers = []; // To store markers for green spaces
+        let infoWindow; // To reuse for displaying marker info
+
+        // Mock database for green spaces with recommendation scores
+        const greenSpacesDB = [
+            { name: "Central Park", lat: 40.785091, lng: -73.968285, score: 98 },
+            { name: "Prospect Park", lat: 40.660204, lng: -73.969052, score: 95 },
+            { name: "Bryant Park", lat: 40.753597, lng: -73.983233, score: 88 },
+            { name: "Washington Square Park", lat: 40.730824, lng: -73.997332, score: 92 },
+            { name: "The High Line", lat: 40.74799, lng: -74.004782, score: 90 },
+            { name: "Riverside Park", lat: 40.7875, lng: -73.9861, score: 85 },
+            { name: "Battery Park", lat: 40.7033, lng: -74.0170, score: 89 },
+            { name: "Brooklyn Bridge Park", lat: 40.7020, lng: -73.9940, score: 96 },
+            { name: "Liberty State Park", lat: 40.7036, lng: -74.0515, score: 93 }, // In NJ, but close
+            { name: "Flushing Meadows Corona Park", lat: 40.7400, lng: -73.8433, score: 87 }, // In Queens
+        ];
 
         // Initialize the application when the window loads
         window.initMap = async function() {
             try {
                 // Request the necessary libraries
-                const { Map } = await google.maps.importLibrary("maps");
+                const { Map, InfoWindow } = await google.maps.importLibrary("maps");
                 const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
                 const { Autocomplete } = await google.maps.importLibrary("places");
 
@@ -158,6 +239,9 @@
                     rotateControl: true,
                     fullscreenControl: true
                 });
+
+                // Initialize a single InfoWindow to be reused.
+                infoWindow = new InfoWindow();
 
                 // Initialize Directions service and renderer
                 directionsService = new google.maps.DirectionsService();
@@ -194,6 +278,12 @@
             
             // Map control buttons
             document.getElementById('reset-map').addEventListener('click', resetMap);
+            document.getElementById('goto-location-btn').addEventListener('click', () => {
+                useCurrentLocation(false); // Pass false to not set the start input
+            });
+
+            // Green spaces button
+            document.getElementById('find-green-spaces').addEventListener('click', findNearbyGreenSpaces);
         }
 
         // Use the browser's geolocation API to center map on user
@@ -216,8 +306,10 @@
                     map.setCenter(userLocation);
                     map.setZoom(14);
                     
-                    // Optionally, set the start location input
-                    document.getElementById('start-location').value = "Current Location";
+                    if (setStartInput) {
+                        // Set the start location input
+                        document.getElementById('start-location').value = "Current Location";
+                    }
                     
                     hideLoading();
                 },
@@ -251,6 +343,7 @@
             // Clear any existing routes and markers
             clearRoutes();
             clearMarkers();
+            clearGreenSpaceMarkers();
             
             // Clear the information panel
             document.getElementById('route-info').classList.add('hidden');
@@ -276,6 +369,115 @@
             routeRenderers = [];
         }
 
+        // Clear green space markers from the map
+        function clearGreenSpaceMarkers() {
+            if (infoWindow) infoWindow.close();
+            for (const marker of greenSpaceMarkers) {
+                marker.map = null;
+            }
+            greenSpaceMarkers = [];
+            document.getElementById('green-space-leaderboard').classList.add('hidden');
+        }
+
+        // Find and display nearby green spaces
+        function findNearbyGreenSpaces() {
+            if (!navigator.geolocation) {
+                showError("Geolocation is not supported by this browser.");
+                return;
+            }
+
+            showLoading("Finding green spaces...");
+            
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    map.setCenter(userLocation);
+                    map.setZoom(13);
+
+                    // 1. Calculate distances and filter
+                    const nearbySpaces = greenSpacesDB.map(space => {
+                        const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                            new google.maps.LatLng(userLocation),
+                            new google.maps.LatLng(space)
+                        );
+                        return { ...space, distance };
+                    }).filter(space => space.distance <= 10000); // 10km radius
+
+                    // 2. Sort by recommendation score
+                    nearbySpaces.sort((a, b) => b.score - a.score);
+
+                    // 3. Clear previous markers and display new ones
+                    clearRoutes();
+                    clearMarkers();
+                    clearGreenSpaceMarkers();
+                    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+                    const leaderboardList = document.getElementById('leaderboard-list');
+                    leaderboardList.innerHTML = '';
+
+                    nearbySpaces.forEach((space, index) => {
+                        // Create Marker
+                        const rank = index + 1;
+                        const colors = { 1: '#FFD700', 2: '#C0C0C0', 3: '#CD7F32' };
+                        const markerColor = colors[rank] || '#2ecc71'; // Gold, Silver, Bronze, then Green
+
+                        const markerEl = document.createElement('div');
+                        markerEl.className = 'marker-drop-in'; // Add animation class
+                        markerEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="${markerColor}" stroke="white" stroke-width="1.5" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+                        
+                        const marker = new AdvancedMarkerElement({
+                            map,
+                            position: { lat: space.lat, lng: space.lng },
+                            content: markerEl,
+                            title: `${space.name} (Score: ${space.score})`
+                        });
+                        greenSpaceMarkers.push(marker);
+
+                        // Add click listener to open InfoWindow
+                        marker.addListener('click', () => {
+                            const contentString = `
+                                <div style="font-family: 'Segoe UI', sans-serif; padding: 5px;">
+                                    <h4 style="margin: 0 0 5px 0;">${space.name}</h4>
+                                    <p style="margin: 0;"><strong>Score:</strong> ${space.score}/100</p>
+                                    <p style="margin: 0;"><strong>Distance:</strong> ${(space.distance / 1000).toFixed(1)} km</p>
+                                </div>
+                            `;
+                            infoWindow.setContent(contentString);
+                            infoWindow.open(map, marker);
+                            map.panTo(marker.position);
+                        });
+
+                        // Create Leaderboard List Item
+                        const listItem = document.createElement('div');
+                        listItem.className = 'leaderboard-item animate-in';
+                        listItem.style.animationDelay = `${index * 70}ms`; // Stagger the animation
+                        listItem.innerHTML = `
+                            <div class="leaderboard-rank">#${rank}</div>
+                            <div class="leaderboard-info">
+                                <div class="leaderboard-name">${space.name}</div>
+                                <div class="leaderboard-meta">Score: ${space.score} | ${(space.distance / 1000).toFixed(1)} km away</div>
+                            </div>
+                        `;
+                        listItem.addEventListener('click', () => {
+                            map.panTo(marker.position);
+                            map.setZoom(15);
+                        });
+                        leaderboardList.appendChild(listItem);
+                    });
+
+                    document.getElementById('green-space-leaderboard').classList.remove('hidden');
+                    hideLoading();
+                },
+                (error) => {
+                    hideLoading();
+                    showError("Could not get your location to find nearby spaces.");
+                }
+            );
+        }
+
         // Placeholder for the main route calculation function
         function calculateRoute() {
             const startLocation = document.getElementById('start-location').value;
@@ -291,6 +493,7 @@
             // Clear previous results
             clearMarkers();
             clearRoutes();
+            clearGreenSpaceMarkers();
             document.getElementById('route-info').classList.add('hidden');
 
             showLoading("Calculating your air-safe route...");
