@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auracast Health Hub (Vanilla JS)</title>
+    <title>Auracast Health Hub (Standalone HTML)</title>
+    <!-- REMOVED: Tailwind CSS CDN and config -->
     
-    <!-- Core CSS Styles (Converted from the previous Tailwind-based block) -->
+    <!-- Load React, ReactDOM, and Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
     <style>
         /* Define the Inter font family */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
@@ -30,7 +35,7 @@
         .items-start { align-items: flex-start; }
         .justify-between { justify-content: space-between; }
         .flex-grow { flex-grow: 1; }
-        .flex-shrink-0 { flex-shrink: 0; }
+        .flex-shrink-0 { flex-shrink-0; }
 
         /* Layout */
         .min-h-screen { min-height: 100vh; }
@@ -234,12 +239,6 @@
         .status-yellow {
             background-color: #f59e0b; /* bg-yellow-500 */
         }
-        .status-red { /* Added for Danger/Critical AQI */
-            background-color: #dc2626; /* bg-red-600 */
-        }
-        .status-blue { /* Added for Good AQI */
-            background-color: #2563eb; /* bg-blue-600 */
-        }
 
         /* Analytics Box */
         .analytics-insight {
@@ -311,15 +310,9 @@
             display: flex;
             align-items: flex-start;
             gap: 0.75rem; /* space-x-3 */
-            opacity: 0;
-            visibility: hidden;
-        }
-        .health-alert.active {
-            opacity: 1;
-            visibility: visible;
         }
 
-        .health-alert .icon-lg { width: 1.5rem; height: 1.5rem; margin-top: 0.125rem; } /* w-6 h-6 mt-0.5 */
+        .health-alert .icon-lg { width: 1.5rem; height: 1.5rem; margin-top: 0.125rem;} /* w-6 h-6 mt-0.5 */
         .health-alert .title { font-weight: 700; text-transform: uppercase; font-size: 0.875rem; } /* font-bold uppercase text-sm */
         .health-alert .care-badge {
             font-size: 0.75rem; /* text-xs */
@@ -341,10 +334,6 @@
             padding: 0.25rem; /* p-1 */
             border-radius: 9999px;
             transition: background-color 0.15s;
-            background: transparent;
-            border: none;
-            color: white;
-            cursor: pointer;
         }
         .health-alert button:hover {
             background-color: rgba(255, 255, 255, 0.2); /* hover:bg-white/20 */
@@ -360,54 +349,130 @@
         .alert-danger { background-color: #b91c1c; border-bottom: 4px solid #7f1d1d; } /* bg-red-700 border-red-900 */
         .alert-info { background-color: #2563eb; border-bottom: 4px solid #1e40af; } /* bg-blue-600 border-blue-800 */
 
+        /* Loading Spinner */
+        .loading-container {
+            background-color: #f9fafb; /* bg-gray-50 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .loader-icon {
+            width: 2rem; height: 2rem; /* w-8 h-8 */
+            animation: spin 1s linear infinite; /* animate-spin */
+            color: #4f46e5; /* text-indigo-600 */
+        }
+        .loader-text {
+            margin-left: 0.75rem; /* ml-3 */
+            color: #4f46e5; /* text-indigo-600 */
+            font-weight: 500; /* font-medium */
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* About Section Styles */
+        .about-section {
+            padding: 1.5rem; /* p-6 */
+            margin-top: 2rem; /* mt-8 */
+            background-color: #fff; /* bg-white */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+            border-top: 4px solid #4f46e5; /* border-t-4 border-indigo-600 */
+        }
+        .about-title {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 700; /* font-bold */
+            color: #1e3a8a; /* text-indigo-800 */
+            margin-bottom: 0.75rem; /* mb-3 */
+        }
+        .about-description {
+            font-size: 0.875rem; /* text-sm */
+            color: #4b5563; /* text-gray-600 */
+            line-height: 1.5; /* leading-relaxed */
+        }
+        .about-description strong {
+            color: #1f2937; /* text-gray-800 */
+        }
     </style>
 </head>
 <body class="antialiased">
 
-    <!-- Personalized Health Alerts Container (Simulated Push Notifications) -->
-    <div id="health-alert-container"></div>
+    <!-- Root container for the React app -->
+    <div id="root"></div>
 
-    <div id="root" class="min-h-screen app-container" style="background-color: #f9fafb;">
-        <!-- Header will be injected here -->
-        <header id="app-header"></header>
+    <script type="text/babel">
+        // Destructure necessary React hooks for cleaner code
+        const { useState, useEffect, useCallback, useMemo } = React;
 
-        <main class="main-grid">
+        // --- Icon Replacements (Using Emojis for standalone simplicity) ---
+        const Icon = {
+            // Updated to reflect the custom font size/style needed without Tailwind
+            HeartPulse: ({ className }) => <span className={`text-xl ${className || ''}`} style={{ fontSize: '1.25rem' }}>❤️</span>,
+            AirVent: ({ className }) => <span className={`text-xl ${className || ''}`} style={{ fontSize: '1.25rem' }}>💨</span>,
+            User: ({ className }) => <span className={`text-base ${className || ''}`} style={{ fontSize: '1rem' }}>👤</span>,
+            Loader2: ({ className }) => <span className={`loader-icon ${className || ''}`}>🔄</span>,
+            AlertTriangle: ({ className }) => <span className={`text-xl ${className || ''}`} style={{ fontSize: '1.25rem' }}>⚠️</span>,
+            CheckCircle: ({ className }) => <span className={`text-xl ${className || ''}`} style={{ fontSize: '1.25rem' }}>✅</span>,
+            X: ({ className }) => <span className={`text-xl ${className || ''}`} style={{ fontSize: '1.25rem' }}>❌</span>,
+            BarChart3: ({ className }) => <span className={`text-xl ${className || ''}`} style={{ fontSize: '1.25rem' }}>📊</span>,
+        };
+        const { HeartPulse, AirVent, User, Loader2, AlertTriangle, CheckCircle, X, BarChart3 } = Icon;
 
-            <!-- Column 1: Symptom Tracker & History -->
-            <section id="tracker-section" class="lg-col-span-2">
-                <!-- Symptom Tracker Form & History will be injected here -->
-            </section>
+
+        // --- Local Data Hook (Uses browser's localStorage for persistence) ---
+
+        const useLocalData = () => {
+            const [userId] = useState("local-user-" + Math.random().toString(36).substring(2, 9));
+            const [isAuthReady] = useState(true);
+
+            // Initialize symptoms from localStorage if available
+            const [symptoms, setSymptoms] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('auracastSymptoms');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    console.error("Could not load symptoms from localStorage:", e);
+                    return [];
+                }
+            });
+
+            // Save symptoms to localStorage whenever the state changes
+            useEffect(() => {
+                try {
+                    localStorage.setItem('auracastSymptoms', JSON.stringify(symptoms));
+                } catch (e) {
+                    console.error("Could not save symptoms to localStorage:", e);
+                }
+            }, [symptoms]);
+
+            return { userId, isAuthReady, symptoms, setSymptoms };
+        };
 
 
-            <!-- Column 2: Analytics -->
-            <section id="analytics-section">
-                <!-- Environmental Status Card and Analytics will be injected here -->
-            </section>
-        </main>
-    </div>
-
-    <script>
-        // --- Static Data & Global State ---
+        // --- Static Data & Helper Functions ---
 
         const SYMPTOM_OPTIONS = [
           'Cough', 'Shortness of breath', 'Wheezing', 'Chest tightness',
           'Sneezing', 'Itchy eyes', 'Runny nose', 'Rashes', 'Headache', 'Fatigue', 'Other'
         ];
         
+        // Static Mock Data for a single location (reverted to fixed context)
         const STATIC_HEALTH_STATUS = {
+            location: "Koovappally, Kerala, India", // Explicitly added the location
             aqiValue: 85,
             aqiText: "Moderate",
             primaryPollutant: "Ozone (O₃)",
             healthRisk: "Sensitive groups should reduce outdoor activity.",
-            colorClass: 'status-yellow', 
-            location: "Koovappally, Kerala, India", // ADDED: Current system location
+            colorClass: 'status-yellow', // New class name
             pollutants: {
-              'PM2.5': 28, 
-              'PM10': 55, 
-              'O3': 0.08, 
-              'NO2': 0.03, 
-              'CO': 3.1, 
-              'SO2': 0.005, 
+              'PM2.5': 28, // µg/m³
+              'PM10': 55, // µg/m³
+              'O3': 0.08, // ppm
+              'NO2': 0.03, // ppm
+              'CO': 3.1, // ppm
+              'SO2': 0.005, // ppm
             },
             weather: {
               temp: '22°C',
@@ -417,91 +482,33 @@
             }
         };
 
-        // Global State (Replaces React's useState)
-        let userId = "local-user-" + Math.random().toString(36).substring(2, 9);
-        let symptoms = [];
-        let newSymptomData = {
-            type: 'Cough',
-            severity: 3,
-            duration: '',
-            notes: '',
-            otherSymptom: '',
-        };
-        let alertMessage = null;
-        let alertTimeout = null;
-        
-        // Global State Setter (Simulating React's setState and useEffect for the alert)
-        function setAlertMessage(message) {
-            alertMessage = message;
-            renderAlert(message);
-        }
-        
-        
-        // --- Icon & SVG Helpers (Using Emojis/SVGs for native rendering) ---
-        
-        const getIconHtml = (name, className, style = {}) => {
-            const styles = Object.entries(style).map(([key, value]) => `${key}:${value}`).join(';');
-
-            switch (name) {
-                case 'HeartPulse': return `<span class="${className}" style="font-size: 1.25rem; ${styles}">❤️</span>`;
-                case 'AirVent': return `<span class="${className}" style="font-size: 1.25rem; ${styles}">💨</span>`;
-                case 'User': return `<span class="${className}" style="font-size: 1rem; ${styles}">👤</span>`;
-                case 'BarChart3': return `<span class="${className}" style="font-size: 1.25rem; ${styles}">📊</span>`;
-                case 'AlertTriangle': 
-                    // SVG for better look in alerts
-                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="${className}" style="${styles}"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.57.103 3.344 1.94 3.344h14.714c1.837 0 2.806-1.774 1.94-3.344L12 2.25 2.697 15.756zM12 15h.007v.008H12z" /></svg>`;
-                case 'CheckCircle': 
-                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="${className}" style="${styles}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
-                case 'X': 
-                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="${className}" style="${styles}"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
-                default: return '';
-            }
-        }
-
-
-        // --- Data Persistence Functions (Replaces useLocalData) ---
-
-        function loadSymptoms() {
-            try {
-                const saved = localStorage.getItem('auracastSymptoms');
-                symptoms = saved ? JSON.parse(saved) : [];
-            } catch (e) {
-                console.error("Could not load symptoms from localStorage:", e);
-                symptoms = [];
-            }
-        }
-
-        function saveSymptoms(symptomList) {
-            try {
-                localStorage.setItem('auracastSymptoms', JSON.stringify(symptomList));
-            } catch (e) {
-                console.error("Could not save symptoms to localStorage:", e);
-            }
-        }
-        
-        // --- Helper Logic ---
-
-        function isValidDurationFormat(duration) {
+        /**
+         * Checks if the duration string contains a recognizable time unit or descriptive phrase.
+         * UPDATED to include 'sec' and 'second'.
+         */
+        const isValidDurationFormat = (duration) => {
             if (!duration || duration.trim() === '') return false;
-            const descriptiveUnits = /(min|hour|hr|day|week|all day|intermittent|since)/i;
+            const descriptiveUnits = /(sec|second|min|hour|hr|day|week|all day|intermittent|since)/i;
             return descriptiveUnits.test(duration.trim());
-        }
+        };
 
-        function getSmartInsight(symptoms, currentAQI) {
+
+        /**
+         * Generates a simulated insight based on the entire symptom history (cumulative analysis).
+         */
+        const getSmartInsight = (symptoms, currentAQI) => {
             if (symptoms.length === 0) {
                 return "Start logging your symptoms now to get immediate analysis linking your health to the current air quality and pollen levels.";
             }
 
             const latestSymptom = symptoms[0];
-            const MAX_ENTRIES_FOR_CUMULATIVE = 20;
-            const entriesForAnalysis = symptoms.slice(0, MAX_ENTRIES_FOR_CUMULATIVE);
             
             // --- Logic for a Single Symptom Entry (Initial Insight) ---
-            if (entriesForAnalysis.length === 1) {
+            if (symptoms.length === 1) {
                 const { type, severity } = latestSymptom;
-                const { pollutants, weather, aqiText } = currentAQI;
+                const { pollutants, aqiText, weather } = currentAQI;
 
-                let insight = `**First Entry Insight (Severity ${severity}):** You logged a **${type}** symptom during ${aqiText} air quality at ${currentAQI.location}.`;
+                let insight = `**First Entry Insight (Severity ${severity}):** You logged a **${type}** symptom during ${aqiText} air quality.`;
 
                 if (['Cough', 'Wheezing', 'Shortness of breath', 'Chest tightness'].includes(type) && pollutants['PM2.5'] > 25) {
                     insight += ` High levels of **PM2.5 (${pollutants['PM2.5']} µg/m³)** are a possible trigger. Limit strenuous outdoor activity.`;
@@ -517,14 +524,14 @@
 
             // --- Logic for Multiple Symptoms (Cumulative Analysis) ---
             
-            const totalEntries = entriesForAnalysis.length;
+            const totalEntries = symptoms.length;
             let totalSeverity = 0;
             const symptomCounts = {};
             let highSeverityCount = 0;
             let highAqiTriggerCount = 0;
             let pollenTriggerCount = 0;
 
-            for (const symptom of entriesForAnalysis) {
+            for (const symptom of symptoms) {
                 totalSeverity += symptom.severity;
                 symptomCounts[symptom.type] = (symptomCounts[symptom.type] || 0) + 1;
                 
@@ -532,10 +539,12 @@
                     highSeverityCount++;
                 }
 
-                if (symptom.exposureData.aqiValue > 70) { 
+                // Check for correlation on the day the symptom was logged
+                if (symptom.exposureData.aqiValue > 70) { // Moderate or worse AQI
                     highAqiTriggerCount++;
                 }
                 
+                // Simplified: Checking for high pollen correlation on the day the symptom was logged
                 if (['Sneezing', 'Itchy eyes', 'Runny nose'].includes(symptom.type) && symptom.exposureData.weather.pollenIndex === 'High') {
                      pollenTriggerCount++;
                 }
@@ -544,9 +553,9 @@
             const averageSeverity = (totalSeverity / totalEntries).toFixed(1);
             
             // Find the most common symptom
-            const commonSymptomEntry = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1])[0];
-            const commonSymptomType = commonSymptomEntry[0];
-            const commonSymptomCount = commonSymptomEntry[1];
+            const mostCommonSymptom = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1])[0];
+            const commonSymptomType = mostCommonSymptom[0];
+            const commonSymptomCount = mostCommonSymptom[1];
 
             let insight = `**Cumulative Analysis (Total Logs: ${totalEntries}):** `;
 
@@ -564,318 +573,62 @@
             if (highAqiTriggerCount > 0.5 * totalEntries) {
                 insight += ` **Strong Air Quality Link:** Over half (${highAqiTriggerCount} of ${totalEntries}) of your logs occurred when the AQI was moderate or worse. **Managing indoor air quality is your top priority.**`;
             } else if (pollenTriggerCount > 0) {
+                // If the most common symptom is allergy related and there's a pollen trigger count
                  insight += ` **Seasonal Trigger Detected:** ${pollenTriggerCount} of your allergy-type symptoms are linked to high pollen days. Prepare for peak pollen seasons.`;
             } else {
                 insight += ` We're currently building a more precise correlation model. Please continue logging details (notes) to help us refine the pattern.`;
             }
 
             return insight;
-        }
+        };
 
 
-        // --- Renderer Functions (Replaces React Components) ---
+        // --- App Component ---
 
-        function renderAlert(message) {
-            const container = document.getElementById('health-alert-container');
-            if (!container) return;
+        const App = () => {
+          const { userId, isAuthReady, symptoms, setSymptoms } = useLocalData();
+
+          const [newSymptomData, setNewSymptomData] = useState({
+            type: 'Cough',
+            severity: 3,
+            duration: '',
+            notes: '',
+            // New state for specific symptom when 'Other' is selected
+            otherSymptom: '', 
+          });
+          const [alertMessage, setAlertMessage] = useState(null);
+
+          // Simulated Environmental Context is now static
+          const healthStatus = useMemo(() => ({
+            ...STATIC_HEALTH_STATUS,
+            icon: <AlertTriangle className="icon-lg" /> // Mock icon
+          }), []);
+
+          // Update symptom data from form inputs
+          const handleSymptomChange = (e) => {
+            const { name, value } = e.target;
             
-            if (alertTimeout) {
-                clearTimeout(alertTimeout);
-                alertTimeout = null;
+            // Use local update object
+            let update = {
+                [name]: name === 'severity' 
+                    ? (value === '' ? '' : parseInt(value))
+                    : value
+            };
+
+            // If the user selects a new type, and it's not 'Other', clear the specific 'otherSymptom' field.
+            if (name === 'type' && value !== 'Other') {
+                update.otherSymptom = '';
             }
 
-            if (!message) {
-                container.innerHTML = '';
-                return;
-            }
+            setNewSymptomData(prev => ({
+              ...prev,
+              ...update,
+            }));
+          };
+          
 
-            const { type, text } = message;
-            
-            let styleClasses = "";
-            let IconName = 'CheckCircle';
-            let title = "Health Alert";
-            let careLevel = "General Monitoring"; 
-            
-            switch (type) {
-              case 'success':
-                styleClasses = "alert-success";
-                IconName = 'CheckCircle';
-                title = "Log Success";
-                careLevel = "Mild Symptom Logged";
-                break;
-              case 'warning':
-                styleClasses = "alert-warning";
-                IconName = 'AlertTriangle';
-                title = "Environmental Warning";
-                careLevel = "Increased Vigilance";
-                break;
-              case 'moderate': 
-                styleClasses = "alert-moderate"; 
-                IconName = 'AlertTriangle';
-                title = "Moderate Symptom Alert";
-                careLevel = "Self-Monitoring Recommended";
-                break;
-              case 'error':
-                styleClasses = "alert-error";
-                IconName = 'X';
-                title = "Input Error";
-                careLevel = "Input Correction Required";
-                break;
-              case 'danger': 
-                styleClasses = "alert-danger"; 
-                IconName = 'AlertTriangle';
-                title = "Critical Health Alert"; 
-                careLevel = "Urgent Attention Advised"; 
-                break;
-              case 'info':
-              default:
-                styleClasses = "alert-info";
-                IconName = 'HeartPulse';
-                title = "Environmental Info";
-                careLevel = "Good Conditions";
-                break;
-            }
-
-            container.innerHTML = `
-                <div class="health-alert ${styleClasses} active">
-                    ${getIconHtml(IconName, 'icon-lg')}
-                    <div class='flex-grow'>
-                        <p class="title">${title}</p>
-                        <p class="care-badge">${careLevel}</p>
-                        <p class="text-detail">${text}</p>
-                    </div>
-                    <button id="alert-close-btn">
-                        ${getIconHtml('X', 'w-4 h-4')}
-                    </button>
-                </div>
-            `;
-            
-            // Add close listener
-            document.getElementById('alert-close-btn').addEventListener('click', () => {
-                setAlertMessage(null);
-            });
-            
-            // Auto-dismiss logic
-            alertTimeout = setTimeout(() => {
-                setAlertMessage(null);
-            }, 8000);
-        }
-
-        function renderHeader(id) {
-            const header = document.getElementById('app-header');
-            if (!header) return;
-            header.className = "header-main flex justify-between items-center";
-            header.innerHTML = `
-                <h1 class="header-title flex items-center">
-                    ${getIconHtml('HeartPulse', 'header-icon')}
-                    Auracast Health Hub
-                </h1>
-                <div class="header-user-id flex items-center">
-                    ${getIconHtml('User', 'mr-1', { width: '1rem', height: '1rem' })}
-                    User ID: <span class="ml-1">${id}</span>
-                </div>
-            `;
-        }
-
-        function renderHistory(symptomList) {
-            const historyListEl = document.getElementById('history-list');
-            const historyContainer = document.getElementById('history-container');
-            if (!historyContainer) return;
-
-            if (symptomList.length === 0) {
-                historyContainer.innerHTML = `<p style="color: #6b7280; font-style: italic;">No symptoms logged yet. Start tracking to build your personal exposure history.</p>`;
-                return;
-            }
-
-            historyContainer.innerHTML = `<ul id="history-list" class="history-list"></ul>`;
-            const listEl = document.getElementById('history-list');
-
-            listEl.innerHTML = symptomList.map(symptom => `
-                <li class="history-item">
-                    <div class="history-header flex justify-between items-start">
-                        <p class="history-type flex items-center">
-                            ${symptom.type} 
-                            <span class='history-severity'>
-                                Severity: ${symptom.severity}
-                            </span>
-                        </p>
-                        <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.125rem;">${symptom.timestamp}</p>
-                    </div>
-                    ${symptom.duration ? `<p style="font-size: 0.75rem; color: #4b5563; margin-bottom: 0.25rem;">Duration: ${symptom.duration}</p>` : ''}
-                    ${symptom.notes ? `<p style="font-size: 0.75rem; font-style: italic; color: #6b7280; margin-bottom: 0.25rem; border-top: 1px solid #f3f4f6; padding-top: 0.25rem; margin-top: 0.25rem;">Notes: ${symptom.notes}</p>` : ''}
-                    
-                    <div class="history-context">
-                        * Context: <span style="font-weight: 600;">${symptom.exposureData.aqiText} (AQI ${symptom.exposureData.aqiValue})</span> in ${symptom.exposureData.location}
-                    </div>
-                </li>
-            `).join('');
-        }
-
-        function renderForm() {
-            const trackerSection = document.getElementById('tracker-section');
-            if (!trackerSection) return;
-
-            const isOther = newSymptomData.type === 'Other';
-            
-            trackerSection.innerHTML = `
-                <div class="card-base card-tracker">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center" style="font-size: 1.25rem; color: #1f2937;">
-                        ${getIconHtml('AirVent', 'mr-2', { width: '1.25rem', height: '1.25rem', color: '#10b981' })}
-                        🩺 Health Symptom Tracker (Log)
-                    </h2>
-                    
-                    <form id="symptom-form" class="form-section" style="display: flex; flex-direction: column; gap: 1rem;">
-                        
-                        <!-- Symptom Type and Severity -->
-                        <div class="grid-cols-2">
-                            <div>
-                                <label for="type" class="form-label">Symptom <span style="color: red">*</span></label>
-                                <select id="type" name="type" class="input-field" required>
-                                    ${SYMPTOM_OPTIONS.map(s => 
-                                        `<option value="${s}" ${s === newSymptomData.type ? 'selected' : ''}>${s}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label for="severity" class="form-label">Severity (1-5) <span style="color: red">*</span></label>
-                                <input id="severity" name="severity" type="number" min="1" max="5" 
-                                    value="${newSymptomData.severity}" class="input-field" required/>
-                            </div>
-                        </div>
-
-                        <!-- Conditional input for 'Other' symptom -->
-                        <div id="other-symptom-input" style="display: ${isOther ? 'block' : 'none'};">
-                            <label for="otherSymptom" class="form-label">Specific Symptom Name <span style="color: red">*</span></label>
-                            <input id="otherSymptom" name="otherSymptom" type="text" 
-                                value="${newSymptomData.otherSymptom}" placeholder="e.g., Joint pain, Hives, etc." class="input-field" ${isOther ? 'required' : ''}/>
-                        </div>
-
-                        <!-- Duration and Notes -->
-                        <div>
-                            <label for="duration" class="form-label">Duration (e.g., "30 mins", "2 hours", "All day") <span style="color: red">*</span></label>
-                            <input id="duration" name="duration" type="text" value="${newSymptomData.duration}" 
-                                placeholder="e.g., '1 hour', 'Intermittent', '3 days'" class="input-field" required/>
-                        </div>
-
-                        <div>
-                            <label for="notes" class="form-label">Notes (Optional)</label>
-                            <textarea id="notes" name="notes" rows="2" 
-                                placeholder="Specific time, location, or medication taken..." class="input-field">${newSymptomData.notes}</textarea>
-                        </div>
-
-                        <button type="submit" id="log-symptom-btn" class="btn-primary">
-                            Log Symptom & Link to Environmental Context
-                        </button>
-                    </form>
-
-                    <h3 class="text-lg font-medium text-gray-700 mt-8 mb-3 border-b pb-2" style="margin-top: 2rem; margin-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; font-size: 1.125rem; font-weight: 500; color: #374151;">Recent History</h3>
-                    <div id="history-container"></div>
-                </div>
-            `;
-            
-            // Attach event listeners after rendering
-            const form = document.getElementById('symptom-form');
-            if (form) {
-                form.addEventListener('submit', handleAddSymptom);
-                form.addEventListener('input', handleFormInput);
-            }
-            // Initial history render
-            renderHistory(symptoms);
-        }
-
-        function renderAnalytics(symptomList, healthStatus) {
-            const section = document.getElementById('analytics-section');
-            if (!section) return;
-
-            // Determine status card color
-            let statusColorClass = 'status-blue';
-            if (healthStatus.aqiValue > 100) {
-                statusColorClass = 'status-red';
-            } else if (healthStatus.aqiValue > 70) {
-                statusColorClass = 'status-yellow';
-            }
-
-            // Determine status card icon
-            const currentAlertIconHtml = getIconHtml(
-                healthStatus.aqiText.includes("Unhealthy") || healthStatus.aqiValue > 70 ? 'AlertTriangle' : 'HeartPulse',
-                'text-white', 
-                { width: '1.5rem', height: '1.5rem' }
-            );
-
-            const smartInsightText = getSmartInsight(symptomList, healthStatus).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-
-            section.innerHTML = `
-                <!-- Environmental Context Header (Static Location) -->
-                <div class="status-card-base ${statusColorClass}">
-                    <h2 class="status-card-header flex items-center">
-                        ${currentAlertIconHtml}
-                        <span style="margin-left: 0.5rem;">Local Air Quality Status</span>
-                    </h2>
-                    <p class="status-card-text">AQI: ${healthStatus.aqiValue} (${healthStatus.aqiText}) | ${healthStatus.healthRisk}</p>
-                </div>
-
-                <!-- Analytics & Smart Insights -->
-                <div class="card-base card-analytics">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center" style="font-size: 1.25rem; color: #1f2937;">
-                        ${getIconHtml('BarChart3', 'mr-2', { width: '1.25rem', height: '1.25rem', color: '#9333ea' })}
-                        📊 Analytics & Smart Insights
-                    </h2>
-                    
-                    <div class="analytics-insight">
-                        <p class="analytics-title">Smart Insight:</p>
-                        <p class="analytics-text">${smartInsightText}</p>
-                    </div>
-
-                    <h3 style="font-size: 1.125rem; font-weight: 500; color: #374151; margin-bottom: 0.75rem;">Today's Environmental Data</h3>
-                    <ul class="analytics-list">
-                        <li><strong>Location:</strong> ${healthStatus.location}</li>
-                        <li><strong>Primary Pollutant:</strong> ${healthStatus.primaryPollutant}</li>
-                        <li><strong>PM2.5:</strong> ${healthStatus.pollutants['PM2.5']} µg/m³</li>
-                        <li><strong>NO2:</strong> ${healthStatus.pollutants['NO2']} ppm</li>
-                        <li><strong>Weather/Pollen:</strong> ${healthStatus.weather.temp}, ${healthStatus.weather.wind} (Pollen: ${healthStatus.weather.pollenIndex})</li>
-                    </ul>
-
-                    <!-- Medical Disclaimer -->
-                    <div class="disclaimer">
-                        <p class="disclaimer-title flex items-center">
-                            ${getIconHtml('AlertTriangle', 'mr-1', { width: '1rem', height: '1rem' })}
-                            Medical Disclaimer
-                        </p>
-                        <p class="disclaimer-text">
-                            Auracast is not a substitute for professional medical diagnosis or advice. Always consult a healthcare provider for any health concerns.
-                        </p>
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- Event Handlers (Replaces React Callbacks) ---
-        
-        // Handle input changes and update the global newSymptomData state
-        function handleFormInput(event) {
-            const { name, value } = event.target;
-            
-            // Update the newSymptomData global state
-            newSymptomData[name] = (name === 'severity' && value !== '') ? parseInt(value) : value;
-
-            // Handle 'Other' selection visibility
-            if (name === 'type') {
-                const otherInputDiv = document.getElementById('other-symptom-input');
-                const otherInputField = document.getElementById('otherSymptom');
-                if (value === 'Other') {
-                    otherInputDiv.style.display = 'block';
-                    otherInputField.setAttribute('required', 'required');
-                } else {
-                    otherInputDiv.style.display = 'none';
-                    otherInputField.removeAttribute('required');
-                    newSymptomData.otherSymptom = ''; // Clear specific symptom if type changes away from 'Other'
-                }
-            }
-        }
-
-        // Handle form submission
-        function handleAddSymptom(e) {
+          // Symptom Tracker Logic
+          const addSymptom = useCallback(async (e) => {
             e.preventDefault();
             
             const severityNum = newSymptomData.severity === '' ? NaN : parseInt(newSymptomData.severity);
@@ -885,14 +638,15 @@
                 ? newSymptomData.otherSymptom.trim() 
                 : newSymptomData.type;
 
-            // 1. Basic Mandatory Field Check
+            // 1. Basic Mandatory Field Check (Type, Severity, Duration presence, including specific symptom name)
             if (
-                !symptomToLog || 
+                !symptomToLog || // Check if the final symptom name is present (handles empty "Other" input)
                 isNaN(severityNum) || 
                 severityNum < 1 || 
                 severityNum > 5 || 
                 !newSymptomData.duration.trim()
             ) {
+                // Customized message for the "Other" case if the specific symptom is missing
                 const missingDetail = newSymptomData.type === 'Other' && !newSymptomData.otherSymptom.trim()
                     ? 'the specific Symptom Name'
                     : 'Symptom Type';
@@ -904,97 +658,402 @@
                 return;
             }
 
-            // 2. Duration Format Check
+            // 2. Duration Format Check (Checking for unit specificity)
             if (!isValidDurationFormat(newSymptomData.duration)) {
                 setAlertMessage({
                     type: 'error',
-                    text: 'Duration requires a specific unit (e.g., "30 mins", "2 hours", "4 days", "1 week") or descriptive phrase like "All day". Please correct.'
+                    text: 'Duration requires a specific unit (e.g., "30 seconds", "10 mins", "2 hours", "4 days") or descriptive phrase like "All day". Please correct.'
                 });
                 return;
             }
+            // ---------------------------------
+
+            const { colorClass, icon, ...serializableHealthStatus } = healthStatus; 
             
-            // Log the new entry
             const newEntry = {
                 id: Date.now().toString(),
+                // LOG THE CORRECT SYMPTOM: use the 'otherSymptom' if 'Other' was selected, otherwise use 'type'
                 type: symptomToLog, 
                 severity: severityNum,
                 duration: newSymptomData.duration, 
                 notes: newSymptomData.notes, 
-                exposureData: STATIC_HEALTH_STATUS,
+                exposureData: serializableHealthStatus,
                 timestamp: new Date().toLocaleString()
             };
             
-            // Update global state and save (max 20 entries)
-            symptoms = [newEntry, ...symptoms].slice(0, 20);
-            saveSymptoms(symptoms);
-            
-            // Reset form fields state
-            newSymptomData.severity = 3;
-            newSymptomData.duration = '';
-            newSymptomData.notes = '';
-            if (newSymptomData.type === 'Other') {
-                newSymptomData.otherSymptom = '';
-            }
+            try {
+              // Add new symptom to the start of the list and cap history at 20 entries
+              setSymptoms(prev => [newEntry, ...prev].slice(0, 20)); 
+              
+              // Reset form fields
+              setNewSymptomData(prev => ({
+                type: prev.type,
+                severity: 3,
+                duration: '',
+                notes: '',
+                // Clear 'otherSymptom' if 'Other' was selected, otherwise keep it cleared
+                otherSymptom: prev.type === 'Other' ? '' : prev.otherSymptom, 
+              }));
+              
+              let alertType = 'success';
+              let alertText = `Symptom "${symptomToLog}" logged successfully and linked to environmental data.`;
 
-            // Determine alert message
-            let alertType = 'success';
-            let alertText = `Symptom "${symptomToLog}" logged successfully and linked to environmental data.`;
-
-            if (severityNum >= 4) {
-                alertType = 'danger'; 
+              if (severityNum >= 4) {
+                alertType = 'danger'; // Critical severity alert type (4-5)
                 alertText = `⚠ High Severity Alert (Level ${severityNum} of 5)! Please reduce strenuous outdoor activity and monitor your condition closely.`;
-            } else if (severityNum === 3) {
-                alertType = 'moderate'; 
+              } else if (severityNum === 3) {
+                alertType = 'moderate'; // Moderate alert type (3)
                 alertText = `Symptom logged at Moderate Severity (Level 3 of 5). Pay attention to any environmental changes and check the analytics dashboard.`;
+              }
+              
+              setAlertMessage({ type: alertType, text: alertText });
+
+            } catch (error) {
+              console.error("Error adding symptom locally:", error);
+              setAlertMessage({ type: 'error', text: 'Failed to log symptom locally.' });
+            }
+          }, [newSymptomData, healthStatus, setSymptoms]);
+
+
+          // Personalized Health Alerts (Simulated Push Notification UI)
+          useEffect(() => {
+            // Only set a default alert if no user-generated alert is active
+            if (!alertMessage || alertMessage.type === 'info' || alertMessage.type === 'warning') {
+                let currentAlertType = 'info';
+                let currentAlertText = 'Air quality is good. Enjoy your day outside!';
+
+                if (healthStatus.aqiValue > 100) {
+                    currentAlertType = 'danger';
+                    currentAlertText = `Critical Air Quality Alert: AQI is ${healthStatus.aqiValue}! ${healthStatus.healthRisk}`;
+                } else if (healthStatus.aqiValue > 75) {
+                    currentAlertType = 'warning';
+                    currentAlertText = `Air Quality Alert: AQI is ${healthStatus.aqiValue}. ${healthStatus.healthRisk}`;
+                }
+                
+                // Only override if the new message is higher severity or the current message is a stale info/warning
+                if (!alertMessage || alertMessage.type === 'info' || alertMessage.type === 'warning' || currentAlertType !== 'info') {
+                    setAlertMessage({ type: currentAlertType, text: currentAlertText });
+                }
             }
             
-            setAlertMessage({ type: alertType, text: alertText });
+            const timer = setTimeout(() => setAlertMessage(null), 8000);
+            return () => clearTimeout(timer);
+          }, [healthStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
-            // Rerender all dynamic parts
-            renderApp();
+
+          // Custom Alert Component
+          const HealthAlert = ({ message, onClose }) => {
+            if (!message) return null;
+            const { type, text } = message;
+
+            let styleClasses = "";
+            let IconComponent = CheckCircle;
+            let title = "Health Alert";
+            let careLevel = "General Monitoring"; // Default Care Level
             
-            // Ensure the form elements reflect the cleared state
-            document.getElementById('duration').value = newSymptomData.duration;
-            document.getElementById('notes').value = newSymptomData.notes;
-            document.getElementById('severity').value = newSymptomData.severity;
-            if (document.getElementById('otherSymptom')) {
-                document.getElementById('otherSymptom').value = newSymptomData.otherSymptom;
+            // Determine styles, title, and care level based on alert type
+            switch (type) {
+              case 'success':
+                styleClasses = "alert-success";
+                IconComponent = CheckCircle;
+                title = "Log Success";
+                careLevel = "Mild Symptom Logged";
+                break;
+              case 'warning':
+                styleClasses = "alert-warning";
+                IconComponent = AlertTriangle;
+                title = "Environmental Warning";
+                careLevel = "Increased Vigilance";
+                break;
+              case 'moderate': 
+                styleClasses = "alert-moderate"; 
+                IconComponent = AlertTriangle;
+                title = "Moderate Symptom Alert";
+                careLevel = "Self-Monitoring Recommended";
+                break;
+              case 'error':
+                styleClasses = "alert-error";
+                IconComponent = X;
+                title = "Input Error";
+                careLevel = "Input Correction Required";
+                break;
+              case 'danger': 
+                styleClasses = "alert-danger"; 
+                IconComponent = AlertTriangle;
+                title = "Critical Health Alert"; 
+                careLevel = "Urgent Attention Advised"; // Highest care level
+                break;
+              case 'info':
+              default:
+                styleClasses = "alert-info";
+                IconComponent = HeartPulse;
+                title = "Environmental Info";
+                careLevel = "Good Conditions";
+                break;
             }
-        }
 
-        // --- Initialization and Main Render Loop ---
-        
-        function checkAndSetInitialAlert() {
-            // Check current AQI for a default warning
-            let currentAlertType = 'info';
-            let currentAlertText = `Welcome to Auracast. Current location: ${STATIC_HEALTH_STATUS.location}. Air quality is good. Enjoy your day outside!`;
+            return (
+              <div className={`health-alert ${styleClasses}`}>
+                <IconComponent className="icon-lg" />
+                <div className='flex-grow'>
+                  {/* Main Title */}
+                  <p className="title">{title}</p>
+                  
+                  {/* Care Level Badge */}
+                  <p className="care-badge">{careLevel}</p>
+                  
+                  {/* Detailed Alert Text */}
+                  <p className="text-detail">{text}</p>
+                </div>
+                <button onClick={onClose}>
+                    <X className='w-4 h-4'/>
+                </button>
+              </div>
+            );
+          };
+          
+          if (!isAuthReady) {
+            return (
+              <div className="loading-container">
+                <Loader2 className="loader-icon" />
+                <p className="loader-text">Initializing Auracast Health Services...</p>
+              </div>
+            );
+          }
 
-            if (STATIC_HEALTH_STATUS.aqiValue > 100) {
-                currentAlertType = 'danger';
-                currentAlertText = `Critical Air Quality Alert in ${STATIC_HEALTH_STATUS.location}: AQI is ${STATIC_HEALTH_STATUS.aqiValue}! ${STATIC_HEALTH_STATUS.healthRisk}`;
-            } else if (STATIC_HEALTH_STATUS.aqiValue > 75) {
-                currentAlertType = 'warning';
-                currentAlertText = `Air Quality Alert in ${STATIC_HEALTH_STATUS.location}: AQI is ${STATIC_HEALTH_STATUS.aqiValue}. ${STATIC_HEALTH_STATUS.healthRisk}`;
+          // Use simplified icon components for the actual rendering
+          const CurrentAlertIcon = ({ type }) => {
+            switch (type) {
+                case 'warning': return <AlertTriangle className="text-white" style={{ width: '1.5rem', height: '1.5rem' }} />;
+                default: return <HeartPulse className="text-white" style={{ width: '1.5rem', height: '1.5rem' }} />;
             }
-            
-            setAlertMessage({ type: currentAlertType, text: currentAlertText });
-        }
+          };
 
-        function renderApp() {
-            renderHeader(userId);
-            renderForm();
-            renderAnalytics(symptoms, STATIC_HEALTH_STATUS);
-            // Alert is rendered via setAlertMessage called from checkAndSetInitialAlert
-        }
+          return (
+            <div className="min-h-screen app-container" style={{ backgroundColor: '#f9fafb' /* bg-gray-50 */ }}>
+              
+              {/* Personalized Health Alerts (Simulated Push Notifications) */}
+              <HealthAlert 
+                message={alertMessage} 
+                onClose={() => setAlertMessage(null)} 
+              />
 
-        function initApp() {
-            loadSymptoms(); // Load state from localStorage
-            renderApp();    // Initial render of the UI
-            checkAndSetInitialAlert(); // Trigger initial environmental alert
-        }
+              <header className="header-main flex justify-between items-center">
+                <h1 className="header-title flex items-center">
+                  <HeartPulse className="header-icon" />
+                  Auracast Health Hub
+                </h1>
+                <div className="header-user-id flex items-center">
+                    <User className="mr-1" style={{ width: '1rem', height: '1rem' }}/>
+                    User ID: <span className="ml-1">{userId}</span>
+                </div>
+              </header>
 
-        // Run the initialization function once the DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', initApp);
+
+              <main className="main-grid">
+
+                {/* Column 1: Symptom Tracker & History */}
+                <section className="lg-col-span-2">
+                  
+                  {/* Health Symptom Tracker Form */}
+                  <div className="card-base card-tracker">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center" style={{ fontSize: '1.25rem', color: '#1f2937' }}>
+                      <AirVent className="mr-2" style={{ width: '1.25rem', height: '1.25rem', color: '#10b981' }} />
+                      🩺 Health Symptom Tracker (Log)
+                    </h2>
+                    
+                    <form onSubmit={addSymptom} className="form-section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      
+                      {/* Symptom Type and Severity */}
+                      <div className="grid-cols-2">
+                        <div>
+                          <label htmlFor="type" className="form-label">Symptom <span style={{color: 'red'}}>*</span></label>
+                          <select
+                            id="type"
+                            name="type"
+                            value={newSymptomData.type}
+                            onChange={handleSymptomChange}
+                            className="input-field"
+                          >
+                            {SYMPTOM_OPTIONS.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor="severity" className="form-label">Severity (1-5) <span style={{color: 'red'}}>*</span></label>
+                          <input
+                            id="severity"
+                            name="severity"
+                            type="number"
+                            min="1"
+                            max="5"
+                            value={newSymptomData.severity}
+                            onChange={handleSymptomChange}
+                            className="input-field"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Conditional input for 'Other' symptom */}
+                      {newSymptomData.type === 'Other' && (
+                        <div>
+                          <label htmlFor="otherSymptom" className="form-label">Specific Symptom Name <span style={{color: 'red'}}>*</span></label>
+                          <input
+                            id="otherSymptom"
+                            name="otherSymptom"
+                            type="text"
+                            value={newSymptomData.otherSymptom}
+                            onChange={handleSymptomChange}
+                            placeholder="e.g., Joint pain, Hives, etc."
+                            className="input-field"
+                            required
+                          />
+                        </div>
+                      )}
+
+
+                      {/* Duration and Notes */}
+                      <div>
+                          <label htmlFor="duration" className="form-label">Duration (e.g., "30 seconds", "2 hours", "All day") <span style={{color: 'red'}}>*</span></label>
+                          <input
+                            id="duration"
+                            name="duration"
+                            type="text"
+                            value={newSymptomData.duration}
+                            onChange={handleSymptomChange}
+                            placeholder="e.g., '60 seconds', '1 hour', 'Intermittent'"
+                            className="input-field"
+                            required
+                          />
+                      </div>
+
+                      <div>
+                          <label htmlFor="notes" className="form-label">Notes (Optional)</label>
+                          <textarea
+                            id="notes"
+                            name="notes"
+                            rows="2"
+                            value={newSymptomData.notes}
+                            onChange={handleSymptomChange}
+                            placeholder="Specific time, location, or medication taken..."
+                            className="input-field"
+                          ></textarea>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={!isAuthReady || !newSymptomData.type}
+                        className="btn-primary"
+                      >
+                        Log Symptom & Link to Environmental Context
+                      </button>
+                    </form>
+
+                    <h3 className="text-lg font-medium text-gray-700 mt-8 mb-3 border-b pb-2" style={{ marginTop: '2rem', marginBottom: '0.75rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem', fontSize: '1.125rem', fontWeight: '500', color: '#374151' }}>Recent History</h3>
+                    {symptoms.length === 0 ? (
+                        <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No symptoms logged yet. Start tracking to build your personal exposure history.</p>
+                    ) : (
+                        <ul className="history-list">
+                        {symptoms.map((symptom) => (
+                            <li key={symptom.id} className="history-item">
+                                <div className="history-header flex justify-between items-start">
+                                    <p className="history-type flex items-center">
+                                        {symptom.type} 
+                                        <span className='history-severity'>
+                                            Severity: {symptom.severity}
+                                        </span>
+                                    </p>
+                                    <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.125rem' }}>{symptom.timestamp}</p>
+                                </div>
+                                {symptom.duration && <p style={{ fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.25rem' }}>Duration: {symptom.duration}</p>}
+                                {symptom.notes && <p style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#6b7280', marginBottom: '0.25rem', borderTop: '1px solid #f3f4f6', paddingTop: '0.25rem', marginTop: '0.25rem' }}>Notes: {symptom.notes}</p>}
+                                
+                                <div className="history-context">
+                                   * Context: <span style={{ fontWeight: '600' }}>{symptom.exposureData.aqiText} (AQI {symptom.exposureData.aqiValue})</span>
+                                </div>
+                            </li>
+                        ))}
+                        </ul>
+                    )}
+                  </div>
+                </section>
+
+
+                {/* Column 2: Analytics */}
+                <section>
+                  
+                  {/* Environmental Context Header (Now static location) */}
+                  <div className={`status-card-base ${healthStatus.colorClass}`}>
+                      <h2 className="status-card-header flex items-center">
+                        <CurrentAlertIcon type={healthStatus.aqiText.includes("Unhealthy") ? 'warning' : 'info'} />
+                        <span style={{ marginLeft: '0.5rem' }}>Local Air Quality Status</span>
+                      </h2>
+                      {/* Location added to the main status card */}
+                      <p className="status-card-text" style={{ fontWeight: '600', marginBottom: '0.25rem' }}>Location: {healthStatus.location}</p> 
+
+                      <p className="status-card-text">AQI: {healthStatus.aqiValue} ({healthStatus.aqiText}) | {healthStatus.healthRisk}</p>
+                  </div>
+
+                  {/* Analytics & Smart Insights */}
+                  <div className="card-base card-analytics">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center" style={{ fontSize: '1.25rem', color: '#1f2937' }}>
+                      <BarChart3 className="mr-2" style={{ width: '1.25rem', height: '1.25rem', color: '#9333ea' }} />
+                      📊 Analytics & Smart Insights
+                    </h2>
+                    
+                    <div className="analytics-insight">
+                        <p className="analytics-title">Smart Insight:</p>
+                        {/* Helper function to render bolded text from mock story (simplified) */}
+                        <p className="analytics-text" dangerouslySetInnerHTML={{ __html: getSmartInsight(symptoms, healthStatus).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                    </div>
+
+                    <h3 style={{ fontSize: '1.125rem', fontWeight: '500', color: '#374151', marginBottom: '0.75rem' }}>Today's Environmental Data</h3>
+                    
+                    {/* Location detail added under the Environmental Data heading */}
+                    <div style={{ fontSize: '1rem', fontWeight: '600', color: '#4f46e5', marginBottom: '0.75rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.5rem' }}>
+                      📍 Location: {healthStatus.location}
+                    </div>
+
+                    <ul className="analytics-list">
+                        <li><strong>Primary Pollutant:</strong> {healthStatus.primaryPollutant}</li>
+                        <li><strong>PM2.5:</strong> {healthStatus.pollutants['PM2.5']} µg/m³</li>
+                        <li><strong>NO2:</strong> {healthStatus.pollutants['NO2']} ppm</li>
+                        <li><strong>Weather/Pollen:</strong> {healthStatus.weather.temp}, {healthStatus.weather.wind} (Pollen: {healthStatus.weather.pollenIndex})</li>
+                    </ul>
+
+                    {/* Medical Disclaimer */}
+                    <div className="disclaimer">
+                        <p className="disclaimer-title flex items-center">
+                            <AlertTriangle className="mr-1" style={{ width: '1rem', height: '1rem' }}/>
+                            Medical Disclaimer
+                        </p>
+                        <p className="disclaimer-text">
+                            Auracast is not a substitute for professional medical diagnosis or advice. Always consult a healthcare provider for any health concerns.
+                        </p>
+                    </div>
+                  </div>
+                </section>
+              </main>
+
+              {/* Added Description Section at the end of the page */}
+              <div className="about-section">
+                  <h2 className="about-title">About the Auracast Health Hub</h2>
+                  <p className="about-description">
+                      The Auracast Health Hub is a personal environmental health tracker designed to help you connect your daily symptoms with real-time local air quality (AQI) and weather data. 
+                      By logging symptoms with severity and duration, the system provides automated insights and identifies correlations between your health and atmospheric conditions, especially regarding pollutants like <strong>PM2.5</strong> and <strong>Ozone</strong>, and local <strong>pollen levels</strong>. 
+                      It acts as a proactive tool for managing environmentally-triggered respiratory and allergic conditions by helping you recognize your personal triggers.
+                  </p>
+              </div>
+
+            </div>
+          );
+        };
+
+        // Render the App component into the root element
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
 
     </script>
 </body>
