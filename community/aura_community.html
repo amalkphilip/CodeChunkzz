@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auracast - Community Hub</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+    <style>
+        /* === MAIN STYLES === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .main-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .main-header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* Essential Map Style */
+        #communityMap {
+            height: 500px; /* Crucial: Gives the map a visible size */
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            /* background-color: blue !important; <--- REMOVE THIS LINE IF MAP IS SHOWING */
+        }
+
+        /* Feature Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        /* Feature Cards */
+        .feature-card {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s, opacity 0.3s, filter 0.3s, background-color 0.3s;
+        }
+
+        .features-grid:hover > .feature-card:not(:hover) {
+            transform: scale(0.98);
+            opacity: 0.6;
+            filter: grayscale(70%);
+        }
+
+        .features-grid:hover > .feature-card:hover {
+            transform: scale(1.03) translateY(-15px);
+            opacity: 1;
+            filter: grayscale(0%);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            background-color: white;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .card-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+
+        .card-title {
+            font-size: 1.4em;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .card-description {
+            color: #718096;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* Forms and Inputs */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+            resize: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4ade80;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2c5530;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        button:hover {
+            background: #1e3a24;
+            transform: translateY(-2px);
+        }
+
+        button.secondary {
+            background: #4ade80;
+            color: #1e3a24;
+        }
+
+        button.secondary:hover {
+            background: #22c55e;
+        }
+
+        /* Status Messages */
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Lists and Items */
+        .items-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid #4ade80;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .item-meta {
+            color: #718096;
+            font-size: 0.9em;
+        }
+
+        .item-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .badge.green {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* Leaderboard styles */
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #4ade80;
+            margin-right: 15px;
+            width: 40px;
+            text-align: center;
+        }
+
+        .neighborhood-info {
+            flex-grow: 1;
+        }
+
+        .neighborhood-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .neighborhood-stats {
+            font-size: 0.8em;
+            color: #718096;
+        }
+
+        .score {
+            padding: 5px 10px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+
+        .activity-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9em;
+            color: #4a5568;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-user {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .activity-time {
+            font-size: 0.8em;
+            color: #a0aec0;
+            margin-top: 2px;
+        }
+        
+        @media (max-width: 768px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <header class="main-header">
+            <h1>🌤️ Auracast Community</h1>
+            <p>Join forces for cleaner air in your neighborhood</p>
+        </header>
+
+        <div id="communityMap"></div>
+
+        <div class="features-grid">
+            
+            <div class="feature-card">
+                <div class="card-header">
+                    <div class="card-icon">🚨</div>
+                    <div class="card-title">Pollution Reporting</div>
+                </div>
+                <p class="card-description">Report air quality issues in your area. Help your community stay informed about pollution events.</p>
+                
+                <form id="pollution-report-form">
+                    <div class="input-group">
+                        <select id="pollutionType" name="pollutionType">
+                            <option value="smoke">🔥 Wildfire Smoke</option>
+                            <option value="odor">🏭 Industrial Odor</option>
+                            <option value="dust">💨 Dust Storm</option>
+                            <option value="pollen">🌼 High Pollen</option>
+                            <option value="vehicle">🚗 Heavy Traffic Pollution</option>
+                        </select>
+                        <input type="text" id="pollutionLocation" name="pollutionLocation" placeholder="Location or landmark..." required>
+                        <textarea id="pollutionDescription" name="pollutionDescription" placeholder="Additional details (optional)..." rows="3"></textarea>
+                        <button type="submit">Submit Report</button>
+                    </div>
+                </form>
+                <div id="reportStatus" class="status"></div>
+
+                <h4 style="margin: 20px 0 10px 0; color: #2d3748;">Recent Reports</h4>
+                <div class="items-list" id="recentReports">
+                    <div class="item">
+                        <div class="item-header">
+                            <span class="item-name">Industrial Odor</span>
+                            <span class="item-meta">15 min ago</span>
+                        </div>
+                        <div class="item-meta">Downtown Area</div>
+                    </div>
+                    <div class="item">
+                        <div class="item-header">
+                            <span class="item-name">Wildfire Smoke</span>
+                            <span class="item-meta">1 hour ago</span>
+                        </div>
+                        <div class="item-meta">North Hills</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="card-header">
+                    <div class="card-icon">🌿</div>
+                    <div class="card-title">Clean Air Spots</div>
+                </div>
+                <p class="card-description">Discover and share locations with great air quality - parks, cafes, libraries, and more.</p>
+                
+                <form id="clean-spot-form">
+                    <div class="input-group">
+                        <input type="text" id="spotName" name="spotName" placeholder="Name of the spot..." required>
+                        <select id="spotType" name="spotType">
+                            <option value="park">🏞️ Park</option>
+                            <option value="cafe">☕ Cafe</option>
+                            <option value="library">📚 Library</option>
+                            <option value="mall">🛍️ Shopping Mall</option>
+                            <option value="gym">💪 Gym</option>
+                            <option value="other">📍 Other</option>
+                        </select>
+                        <input type="text" id="spotAddress" name="spotAddress" placeholder="Address or area..." required>
+                        <textarea id="spotRecommendation" name="spotRecommendation" placeholder="Why do you recommend this spot? (optional)" rows="2"></textarea>
+                        <button type="submit" class="secondary">Add Clean Air Spot</button>
+                    </div>
+                </form>
+                <div id="spotStatus" class="status"></div>
+
+                <div class="suggestion-box">
+                    💡 <strong>Pro Tip:</strong> Looking for the best air? Try a spot in <strong>Green Valley</strong>, our #1 ranked neighborhood!
+                </div>
+
+                <h4 style="margin: 20px 0 10px 0; color: #2d3748;">Recommended Spots</h4>
+                <div class="items-list" id="cleanSpotsList">
+                    <div class="item">
+                        <div class="item-header">
+                            <span class="item-name">Central Park</span>
+                            <span class="badge green">AQI 12</span>
+                        </div>
+                        <div class="item-meta">🏞️ Park • Downtown</div>
+                        <div class="item-stats">
+                            <span>👍 24 recommendations</span>
+                            <span>0.5 miles away</span>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div class="item-header">
+                            <span class="item-name">Green Bean Cafe</span>
+                            <span class="badge green">AQI 15</span>
+                        </div>
+                        <div class="item-meta">☕ Cafe • Riverside</div>
+                        <div class="item-stats">
+                            <span>👍 18 recommendations</span>
+                            <span>1.2 miles away</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="card-header">
+                    <div class="card-icon">🏆</div>
+                    <div class="card-title">Clean Air Zones</div>
+                </div>
+                <p class="card-description">See how neighborhoods rank in air quality. Help your area become the cleanest zone!</p>
+                
+                <div class="input-group">
+                    <select id="zoneFilter">
+                        <option value="all">All Neighborhoods</option>
+                        <option value="my-area">My Area</option>
+                        <option value="top10">Top 10 Cleanest</option>
+                    </select>
+                    <button onclick="refreshLeaderboard()">Refresh Rankings</button>
+                </div>
+
+                <h4 style="margin: 20px 0 10px 0; color: #2d3748;">Neighborhood Leaderboard</h4>
+                <div class="items-list" id="leaderboard">
+                    <div class="leaderboard-item">
+                        <div class="rank">#1</div>
+                        <div class="neighborhood-info">
+                            <div class="neighborhood-name">Green Valley</div>
+                            <div class="neighborhood-stats">125 reports • 98% positive</div>
+                        </div>
+                        <div class="score" style="background: #4ade80;">AQI 12</div>
+                    </div>
+                    <div class="leaderboard-item">
+                        <div class="rank">#2</div>
+                        <div class="neighborhood-info">
+                            <div class="neighborhood-name">Riverside Park</div>
+                            <div class="neighborhood-stats">89 reports • 95% positive</div>
+                        </div>
+                        <div class="score" style="background: #4ade80;">AQI 15</div>
+                    </div>
+                    <div class="leaderboard-item">
+                        <div class="rank">#3</div>
+                        <div class="neighborhood-info">
+                            <div class="neighborhood-name">Oakwood Heights</div>
+                            <div class="neighborhood-stats">156 reports • 92% positive</div>
+                        </div>
+                        <div class="score" style="background: #fbbf24;">AQI 22</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 15px; background: #f0fdf4; border-radius: 10px; border: 1px solid #bbf7d0;">
+                    <h4 style="color: #166534; margin-bottom: 10px;">Your Neighborhood</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600;">City Center</div>
+                            <div style="font-size: 0.9em; color: #718096;">Ranked #8 • AQI 35</div>
+                        </div>
+                        <button class="secondary" style="width: auto; padding: 8px 15px;">Improve Ranking</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-card" style="grid-column: span 1 / auto;">
+            <div class="card-header">
+                <div class="card-icon">📊</div>
+                <div class="card-title">Community Activity</div>
+            </div>
+            <p class="card-description">Recent activities and contributions from your community members.</p>
+            
+            <div class="items-list" id="communityActivity">
+                <div class="activity-item">
+                    <span class="activity-user">Sarah M.</span> reported industrial odor in Downtown
+                    <div class="activity-time">5 minutes ago</div>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-user">Mike T.</span> added Riverside Park as a clean air spot
+                    <div class="activity-time">12 minutes ago</div>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-user">Community</span> Green Valley is now #1 in rankings!
+                    <div class="activity-time">1 hour ago</div>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-user">Lisa K.</span> reported high pollen near Park Street
+                    <div class="activity-time">2 hours ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // --- 1. MAP INITIALIZATION ---
+        // This must run after the <div> is defined AND after Leaflet library is loaded.
+        const map = L.map('communityMap').setView([34.0522, -118.2437], 10); // Center: Los Angeles (default for demo)
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // --- 2. LAYER GROUPS FOR COMMUNITY DATA ---
+        const pollutionReportsLayer = L.layerGroup().addTo(map);
+        const cleanSpotsLayer = L.layerGroup().addTo(map);
+
+        // --- 3. CUSTOM MARKER ICONS ---
+        const PollutionIcon = L.icon({
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+
+        const CleanSpotIcon = L.icon({
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+
+        // --- 4. GEOCODING FUNCTION (Global helper) ---
+        async function geocodeAddress(address) {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), displayName: data[0].display_name };
+                }
+            } catch (error) {
+                console.error("Geocoding failed:", error);
+            }
+            return null;
+        }
+
+        // --- 5. LAYER CONTROL SETUP ---
+        const overlayMaps = {
+            "<span style='color: red;'>🚨 Community Pollution Reports</span>": pollutionReportsLayer,
+            "<span style='color: green;'>✅ Recommended Clean Spots</span>": cleanSpotsLayer
+        };
+
+        L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+        console.log("Map initialized and layers ready for community reports.");
+    </script> 
+    
+    <script>
+        // === COMMUNITY HUB FORM HANDLERS ===
+        
+        // References to HTML elements
+        const pollutionForm = document.getElementById('pollution-report-form');
+        const reportStatus = document.getElementById('reportStatus');
+        const reportsList = document.getElementById('recentReports');
+        const cleanSpotForm = document.getElementById('clean-spot-form');
+        const spotStatus = document.getElementById('spotStatus');
+        const spotsList = document.getElementById('cleanSpotsList');
+
+        // Feature 1: Pollution Reporting Handler
+        pollutionForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); 
+            
+            const type = document.getElementById('pollutionType').value;
+            const location = document.getElementById('pollutionLocation').value;
+            const description = document.getElementById('pollutionDescription').value;
+            
+            if (!location) {
+                updateStatus(reportStatus, "Please enter a location", "error");
+                return;
+            }
+            
+            updateStatus(reportStatus, "📡 Submitting and mapping report...", "info");
+            const coords = await geocodeAddress(location);
+            
+            if (coords) {
+                // ADD MARKER TO MAP (using map objects from Script Block 2)
+                L.marker([coords.lat, coords.lon], { icon: PollutionIcon })
+                    .addTo(pollutionReportsLayer)
+                    .bindPopup(`
+                        <h4>🚨 New Pollution Report: ${getPollutionTypeText(type)}</h4>
+                        <b>Location:</b> ${coords.displayName}<br>
+                        <b>Description:</b> ${description || 'No details provided.'}<br>
+                        <small>Reported by Community Member</small>
+                    `)
+                    .openPopup();
+                
+                map.flyTo([coords.lat, coords.lon], 13);
+                
+                addReportToList(type, location, reportsList);
+                updateStatus(reportStatus, "✅ Thank you! Your report is now on the map.", "success");
+                addCommunityActivity(`You reported ${getPollutionTypeText(type).toLowerCase()} in ${location}`);
+
+                pollutionForm.reset(); 
+            } else {
+                updateStatus(reportStatus, "❌ Could not find that location. Please be more specific.", "error");
+            }
+        });
+
+
+        // Feature 2: Clean Air Spots Handler
+        cleanSpotForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('spotName').value;
+            const type = document.getElementById('spotType').value;
+            const address = document.getElementById('spotAddress').value;
+            const recommendation = document.getElementById('spotRecommendation').value;
+            
+            if (!name || !address) {
+                updateStatus(spotStatus, "Please fill in both spot name and address.", "error");
+                return;
+            }
+
+            updateStatus(spotStatus, "🌿 Finding location for clean spot...", "info");
+            const coords = await geocodeAddress(address);
+
+            if (coords) {
+                // ADD MARKER TO MAP (using map objects from Script Block 2)
+                const randomAqi = Math.floor(Math.random() * 10) + 10;
+                L.marker([coords.lat, coords.lon], { icon: CleanSpotIcon })
+                    .addTo(cleanSpotsLayer)
+                    .bindPopup(`
+                        <h4>⭐ Clean Spot: ${name} (${getSpotTypeText(type)})</h4>
+                        <b>Address:</b> ${coords.displayName}<br>
+                        <b>Recommendation:</b> ${recommendation || 'No detailed recommendation.'}<br>
+                        <span class="badge green">Approx. AQI ${randomAqi}</span>
+                    `)
+                    .openPopup();
+                
+                map.flyTo([coords.lat, coords.lon], 13);
+
+                addSpotToList(name, type, address, randomAqi, spotsList);
+                updateStatus(spotStatus, `✅ ${name} is now on the map!`, "success");
+                addCommunityActivity(`You added ${name} as a clean air spot`);
+
+                cleanSpotForm.reset(); 
+            } else {
+                updateStatus(spotStatus, "❌ Could not find the spot's address. Please check your input.", "error");
+            }
+        });
+
+
+        // --- UTILITY FUNCTIONS ---
+        
+        function refreshLeaderboard() {
+            const filter = document.getElementById('zoneFilter').value;
+            updateStatus(reportStatus, `🔄 Refreshing leaderboard for ${getFilterText(filter)}...`, "info");
+            setTimeout(() => {
+                updateStatus(reportStatus, "✅ Leaderboard updated!", "success");
+            }, 1000);
+        }
+
+        function updateStatus(element, message, type) {
+            element.textContent = message;
+            element.className = `status ${type} show`;
+            
+            if (element.timeoutId) {
+                clearTimeout(element.timeoutId);
+            }
+            element.timeoutId = setTimeout(() => {
+                element.className = 'status'; // Hide status after 5 seconds
+            }, 5000);
+        }
+
+        function addReportToList(type, location, listElement) {
+            const newReport = document.createElement('div');
+            newReport.className = 'item';
+            newReport.innerHTML = `
+                <div class="item-header">
+                    <span class="item-name">${getPollutionTypeText(type)}</span>
+                    <span class="item-meta">Just now</span>
+                </div>
+                <div class="item-meta">${location}</div>
+            `;
+            if (listElement.children.length >= 5) {
+                listElement.removeChild(listElement.lastChild);
+            }
+            listElement.prepend(newReport);
+        }
+
+        function addSpotToList(name, type, address, aqi, listElement) {
+            const newSpot = document.createElement('div');
+            newSpot.className = 'item';
+            newSpot.innerHTML = `
+                <div class="item-header">
+                    <span class="item-name">${name}</span>
+                    <span class="badge green">AQI ${aqi}</span>
+                </div>
+                <div class="item-meta">${getSpotTypeEmoji(type)} ${getSpotTypeText(type)} • ${address}</div>
+                <div class="item-stats">
+                    <span>👍 1 recommendation</span>
+                    <span>${(Math.random() * 0.5 + 0.1).toFixed(1)} miles away</span>
+                </div>
+            `;
+            if (listElement.children.length >= 5) {
+                listElement.removeChild(listElement.lastChild);
+            }
+            listElement.prepend(newSpot);
+        }
+
+        function getPollutionTypeText(type) {
+            const types = { smoke: 'Wildfire Smoke', odor: 'Industrial Odor', dust: 'Dust Storm', pollen: 'High Pollen', vehicle: 'Traffic Pollution' };
+            return types[type] || type;
+        }
+
+        function getSpotTypeEmoji(type) {
+            const emojis = { park: '🏞️', cafe: '☕', library: '📚', mall: '🛍️', gym: '💪', other: '📍' };
+            return emojis[type] || '📍';
+        }
+
+        function getSpotTypeText(type) {
+            const types = { park: 'Park', cafe: 'Cafe', library: 'Library', mall: 'Shopping Mall', gym: 'Gym', other: 'Location' };
+            return types[type] || type;
+        }
+
+        function getFilterText(filter) {
+            const filters = { all: 'All Neighborhoods', 'my-area': 'Your Area', top10: 'Top 10 Cleanest' };
+            return filters[filter] || filter;
+        }
+
+        function addCommunityActivity(message) {
+            const activityFeed = document.getElementById('communityActivity');
+            const newActivity = document.createElement('div');
+            newActivity.className = 'activity-item';
+            newActivity.innerHTML = `
+                <span class="activity-user">You</span> ${message}
+                <div class="activity-time">Just now</div>
+            `;
+            if (activityFeed.children.length >= 5) {
+                activityFeed.removeChild(activityFeed.lastChild);
+            }
+            activityFeed.prepend(newActivity);
+        }
+        
+        console.log("🎯 Auracast Community Hub Logic Loaded and connected to map.");
+    </script>
+</body>
+</html>
