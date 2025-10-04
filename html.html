@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air-Safe Route Planner</title>
+    
+    <!-- Google Maps API Bootstrap Loader -->
+    <script>
+        (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+            key: "YOUR_GOOGLE_MAPS_API_KEY", // REPLACE WITH YOUR API KEY
+            v: "weekly",
+            libraries: ["marker", "places", "geometry"] // Added libraries for future route features
+        });
+    </script>
+
+    <style>
+        /* Basic CSS Reset */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; }
+
+        /* App Layout Structure */
+        .app-container { display: flex; flex-direction: column; height: 100vh; }
+        .app-header { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+
+        /* Controls Sidebar */
+        .controls-sidebar { width: 350px; background: white; padding: 1.5rem; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
+        .control-group { margin-bottom: 1.5rem; }
+        .control-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50; }
+        .control-group input[type="text"], .control-group select { width: 100%; padding: 0.75rem; border: 2px solid #e9ecef; border-radius: 8px; font-size: 0.9rem; transition: border-color 0.3s ease; }
+        .control-group input[type="text"]:focus, .control-group select:focus { outline: none; border-color: #2ecc71; }
+        .search-container { position: relative; display: flex; gap: 0.5rem; }
+        .current-location-btn { background: #3498db; border: none; border-radius: 8px; color: white; padding: 0.75rem; cursor: pointer; transition: background-color 0.3s ease; }
+        .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .checkbox-group label { display: flex; align-items: center; font-weight: normal; margin-bottom: 0.25rem; }
+        .calculate-btn { width: 100%; background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; border: none; padding: 1rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s ease; }
+        .calculate-btn:hover { transform: translateY(-2px); }
+
+        /* Map Container - CRITICAL FOR DISPLAY */
+        .map-container { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; } /* Height is controlled by its container */
+        .map-controls { position: absolute; top: 1rem; right: 1rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 1000; }
+        .map-control-btn { background: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .route-info { margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; }
+        .loading { text-align: center; padding: 2rem; }
+        .error-message { background: #e74c3c; color: white; padding: 1rem; border-radius: 6px; margin-top: 1rem; }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content { flex-direction: column; }
+            .controls-sidebar { width: 100%; max-height: 40vh; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>🌿 Air-Safe Route Planner</h1>
+            <p>Find walking, running, and cycling routes with minimal environmental exposure</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Controls Sidebar -->
+            <div class="controls-sidebar">
+                <div class="control-group">
+                    <label for="start-location">Start Location</label>
+                    <div class="search-container">
+                        <input type="text" id="start-location" placeholder="Enter start address...">
+                        <button id="current-location-btn" class="current-location-btn" title="Use current location">📍</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="end-location">End Location</label>
+                    <input type="text" id="end-location" placeholder="Enter destination...">
+                </div>
+                <div class="control-group">
+                    <label for="travel-mode">Travel Mode</label>
+                    <select id="travel-mode">
+                        <option value="walking">Walking</option>
+                        <option value="cycling">Cycling</option>
+                        <option value="running">Running</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="exposure-preference">Exposure Preference</label>
+                    <select id="exposure-preference">
+                        <option value="balanced">Balanced (Time + Safety)</option>
+                        <option value="safest">Safest Route</option>
+                        <option value="fastest">Fastest Route</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Environmental Factors</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="air-quality" checked> Air Quality</label>
+                        <label><input type="checkbox" id="noise-level" checked> Noise Levels</label>
+                        <label><input type="checkbox" id="green-space"> Green Spaces</label>
+                        <label><input type="checkbox" id="traffic-density"> Traffic Density</label>
+                    </div>
+                </div>
+                <button id="calculate-route" class="calculate-btn">Calculate Air-Safe Route</button>
+                
+                <!-- Information Panels -->
+                <div id="route-info" class="route-info hidden">
+                    <h3>Route Comparison</h3>
+                    <div id="route-options" class="route-options"></div>
+                    <div class="route-stats">
+                        <div id="selected-route-stats"></div>
+                    </div>
+                </div>
+                <div id="loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Calculating optimal route...</p>
+                </div>
+                <div id="error-message" class="error-message hidden"></div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="map-controls">
+                    <button id="reset-map" class="map-control-btn">Reset View</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map;
+        let startMarker;
+        let endMarker;
+        let directionsService;
+        let directionsRenderer;
+        let routeRenderers = []; // To store a renderer for each route
+
+        // Initialize the application when the window loads
+        window.initMap = async function() {
+            try {
+                // Request the necessary libraries
+                const { Map } = await google.maps.importLibrary("maps");
+                const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+                const { Autocomplete } = await google.maps.importLibrary("places");
+
+                // Create the map centered on a default location (New York City)
+                map = new Map(document.getElementById("map"), {
+                    center: { lat: 40.7128, lng: -74.0060 },
+                    zoom: 12,
+                    mapId: "AIR_SAFE_MAP", // Optional: for custom map styling
+                    zoomControl: true,
+                    mapTypeControl: false,
+                    scaleControl: true,
+                    streetViewControl: false,
+                    rotateControl: true,
+                    fullscreenControl: true
+                });
+
+                // Initialize Directions service and renderer
+                directionsService = new google.maps.DirectionsService();
+                // The main renderer is now created on-demand in calculateRoute
+
+                console.log("Google Map initialized successfully");
+                
+                // Set up event listeners for the application
+                setupEventListeners(Autocomplete);
+
+            } catch (error) {
+                console.error("Error initializing Google Map:", error);
+                showError("Failed to load Google Maps. Please check your API key and try again.");
+            }
+        };
+
+        // Set up all event listeners
+        function setupEventListeners(Autocomplete) {
+            // Initialize Places Autocomplete
+            const startInput = document.getElementById('start-location');
+            const endInput = document.getElementById('end-location');
+            
+            const autocompleteOptions = {
+                fields: ["formatted_address", "geometry", "name"],
+            };
+            const startAutocomplete = new Autocomplete(startInput, autocompleteOptions);
+            const endAutocomplete = new Autocomplete(endInput, autocompleteOptions);
+
+            // Calculate route button
+            document.getElementById('calculate-route').addEventListener('click', calculateRoute);
+            
+            // Current location button
+            document.getElementById('current-location-btn').addEventListener('click', useCurrentLocation);
+            
+            // Map control buttons
+            document.getElementById('reset-map').addEventListener('click', resetMap);
+        }
+
+        // Use the browser's geolocation API to center map on user
+        function useCurrentLocation() {
+            if (!navigator.geolocation) {
+                showError("Geolocation is not supported by this browser.");
+                return;
+            }
+
+            showLoading("Getting your location...");
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    
+                    // Center the map on the user's location
+                    map.setCenter(userLocation);
+                    map.setZoom(14);
+                    
+                    // Optionally, set the start location input
+                    document.getElementById('start-location').value = "Current Location";
+                    
+                    hideLoading();
+                },
+                (error) => {
+                    hideLoading();
+                    let errorMessage = "Could not get your location: ";
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += "Permission denied.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += "Position unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += "Request timed out.";
+                            break;
+                        default:
+                            errorMessage += "Unknown error.";
+                            break;
+                    }
+                    showError(errorMessage);
+                }
+            );
+        }
+
+        // Reset map to default view
+        function resetMap() {
+            map.setCenter({ lat: 40.7128, lng: -74.0060 });
+            map.setZoom(12);
+            
+            // Clear any existing routes and markers
+            clearRoutes();
+            clearMarkers();
+            
+            // Clear the information panel
+            document.getElementById('route-info').classList.add('hidden');
+        }
+
+        // Clear existing markers from the map
+        function clearMarkers() {
+            if (startMarker) {
+                startMarker.map = null;
+                startMarker = null;
+            }
+            if (endMarker) {
+                endMarker.map = null;
+                endMarker = null;
+            }
+        }
+
+        // Clear all route renderers from the map
+        function clearRoutes() {
+            for (const renderer of routeRenderers) {
+                renderer.setMap(null);
+            }
+            routeRenderers = [];
+        }
+
+        // Placeholder for the main route calculation function
+        function calculateRoute() {
+            const startLocation = document.getElementById('start-location').value;
+            const endLocation = document.getElementById('end-location').value;
+            const exposurePreference = document.getElementById('exposure-preference').value;
+            const travelMode = document.getElementById('travel-mode').value.toUpperCase();
+            
+            if (!startLocation || !endLocation) {
+                showError("Please enter both start and end locations.");
+                return;
+            }
+            
+            // Clear previous results
+            clearMarkers();
+            clearRoutes();
+            document.getElementById('route-info').classList.add('hidden');
+
+            showLoading("Calculating your air-safe route...");
+            
+            const request = {
+                origin: startLocation,
+                destination: endLocation,
+                travelMode: google.maps.TravelMode[travelMode === 'CYCLING' || travelMode === 'RUNNING' ? 'BICYCLING' : 'WALKING'],
+                provideRouteAlternatives: true
+            };
+
+            directionsService.route(request, async (result, status) => {
+                hideLoading();
+                if (status === 'OK') {
+                    // Create a renderer for each route
+                    result.routes.forEach((route, index) => {
+                        const renderer = new google.maps.DirectionsRenderer({
+                            map: map,
+                            directions: result,
+                            routeIndex: index,
+                            suppressMarkers: true,
+                            polylineOptions: {
+                                strokeColor: '#95a5a6', // Muted color for unselected routes
+                                strokeWeight: 4,
+                                strokeOpacity: 0.6
+                            }
+                        });
+                        routeRenderers.push(renderer);
+                    });
+
+                    const optimalRouteIndex = selectOptimalRoute(result.routes, exposurePreference);
+                    highlightRoute(optimalRouteIndex);
+                    displayRouteOptions(result.routes, optimalRouteIndex);
+
+                } else {
+                    showError('Directions request failed due to ' + status);
+                }
+            });
+        }
+
+        // Analyzes routes and selects the best one based on preference
+        function selectOptimalRoute(routes, preference) {
+            // 1. Score all routes
+            const scoredRoutes = routes.map((route, index) => {
+                const duration = route.legs[0].duration.value; // in seconds
+                
+                // *** Placeholder for real safety scoring ***
+                // In a real app, you would analyze the route's path (route.overview_path)
+                // against environmental data (air quality, noise, etc.)
+                // Here, we simulate a score from 0 to 100.
+                const safetyScore = Math.random() * 100; 
+
+                return { index, duration, safetyScore, route };
+            });
+
+            // 2. Select route based on preference
+            let bestRoute;
+            if (preference === 'fastest') {
+                bestRoute = scoredRoutes.reduce((best, current) => current.duration < best.duration ? current : best);
+            } else if (preference === 'safest') {
+                bestRoute = scoredRoutes.reduce((best, current) => current.safetyScore > best.safetyScore ? current : best);
+            } else { // 'balanced'
+                // For balanced, we can normalize scores and combine them.
+                // This is a simple approach: find the route that is good in both.
+                const fastest = scoredRoutes.reduce((b, c) => c.duration < b.duration ? c : b);
+                const safest = scoredRoutes.reduce((b, c) => c.safetyScore > b.safetyScore ? c : b);
+                
+                // If fastest and safest are the same, great! Otherwise, we might prefer the safest.
+                // A more complex algorithm could be used here. We'll default to the safest for this example.
+                bestRoute = safest;
+            }
+
+            return bestRoute.index;
+        }
+
+        // Highlights a specific route and displays its info
+        async function highlightRoute(routeIndex) {
+            // Reset all renderers to the unselected style
+            routeRenderers.forEach(renderer => {
+                renderer.setOptions({
+                    polylineOptions: { strokeColor: '#95a5a6', strokeOpacity: 0.6, zIndex: 1 }
+                });
+            });
+
+            // Highlight the selected route
+            const selectedRenderer = routeRenderers[routeIndex];
+            selectedRenderer.setOptions({
+                polylineOptions: { strokeColor: '#3498db', strokeOpacity: 0.9, zIndex: 2 }
+            });
+
+            const route = selectedRenderer.getDirections().routes[routeIndex];
+
+            // Clear and set new markers
+            clearMarkers();
+            const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+            const startMarkerEl = document.createElement('div');
+            startMarkerEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#27ae60" stroke="white" stroke-width="1.5" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="white"/></svg>`;
+            const endMarkerEl = document.createElement('div');
+            endMarkerEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#e74c3c" stroke="white" stroke-width="1.5" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>`;
+
+            startMarker = new AdvancedMarkerElement({ map, position: route.legs[0].start_location, content: startMarkerEl, title: 'Start' });
+            endMarker = new AdvancedMarkerElement({ map, position: route.legs[0].end_location, content: endMarkerEl, title: 'End' });
+
+            // Display route stats
+            const leg = route.legs[0];
+            const now = new Date();
+            const arrivalTime = new Date(now.getTime() + leg.duration.value * 1000);
+            const formattedArrivalTime = arrivalTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+            document.getElementById('selected-route-stats').innerHTML = `
+                <p><strong>Distance:</strong> ${leg.distance.text}</p>
+                <p><strong>Duration:</strong> ${leg.duration.text}</p>
+                <p><strong>Est. Arrival:</strong> ${formattedArrivalTime}</p>
+                <p><strong>Safety Score:</strong> ${Math.round(Math.random() * 100)}/100 <span style="font-size:0.8em; color:#777;">(Simulated)</span></p>
+            `;
+            document.getElementById('route-info').classList.remove('hidden');
+        }
+
+        // Creates clickable options for each returned route
+        function displayRouteOptions(routes, selectedIndex) {
+            const optionsContainer = document.getElementById('route-options');
+            optionsContainer.innerHTML = '';
+
+            routes.forEach((route, index) => {
+                const optionEl = document.createElement('button');
+                optionEl.textContent = `Route ${index + 1} (${route.summary || route.legs[0].duration.text})`;
+                optionEl.className = 'route-option-btn';
+                if (index === selectedIndex) {
+                    optionEl.classList.add('selected');
+                }
+                optionEl.addEventListener('click', () => {
+                    highlightRoute(index);
+                    // Update selected state on buttons
+                    document.querySelectorAll('.route-option-btn').forEach(btn => btn.classList.remove('selected'));
+                    optionEl.classList.add('selected');
+                });
+                optionsContainer.appendChild(optionEl);
+            });
+        }
+
+        // UI Helper Functions
+        function showLoading(message = "Loading...") {
+            const loadingElement = document.getElementById('loading');
+            loadingElement.querySelector('p').textContent = message;
+            loadingElement.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+            
+            // Auto-hide error after 5 seconds
+            setTimeout(() => {
+                errorElement.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
