@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     
     <style>
-        /* FONT & BASIC RESET */
+        
         
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,32 +39,25 @@
     padding: 0.5rem 1rem; 
     margin-top: 8px;
     
-    /* rounded-full */
     border-radius: 9999px;
 
-    /* text-slate-600 */
     color: #475569;
 
-    /* font-medium */
   
     font-weight: bold;
     
-    /* transition-colors */
    
     transition-property: color, background-color;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
     cursor: pointer;
     }
-
-    /* hover:text-indigo-600 hover:bg-black/5 */
     .my-button:hover {
     color: #4f46e5;
     background-color: rgba(0, 0, 0, 0.05);
     }
 
 
-        /* BREEZE ANIMATION */
         @keyframes breeze {
             0% { transform: translateX(-100%) translateY(-50%) rotate(-20deg); opacity: 0; }
             20%, 80% { opacity: 0.08; }
@@ -80,17 +73,14 @@
             animation-delay: -6s;
         }
 
-
-        /* APP LAYOUT STRUCTURE */
         
         .app-container {
             display: flex;
             height: 100vh;
         }
 
-        /* MAP CONTAINER (LEFT) */
         .map-container {
-            flex: 1; /* Takes up remaining space */
+            flex: 1; 
             position: relative;
         }
         #map {
@@ -98,7 +88,6 @@
             height: 100%;
         }
 
-        /* CONTROLS SIDEBAR (RIGHT) */
         .controls-sidebar {
             width: 380px;
             background: white;
@@ -107,7 +96,7 @@
             box-shadow: -4px 0 15px rgba(0,0,0,0.1);
             z-index: 1000;
             display: flex;
-            position: relative; /* For breeze animation */
+            position: relative; 
             flex-direction: column;
         }
         
@@ -128,7 +117,6 @@
             color: #6c757d;
         }
 
-        /* FORM CONTROL STYLES */
         .control-group {
             margin-bottom: 1.25rem;
         }
@@ -169,7 +157,6 @@
             margin-right: 0.5rem;
         }
         
-        /* BUTTONS */
         .action-btn {
             width: 100%;
             background: linear-gradient(135deg, #009688, #00796b);
@@ -193,7 +180,6 @@
             box-shadow: none;
         }
 
-        /* UTILITY */
         #location-details {
             margin-top: 1rem;
             padding: 1rem;
@@ -219,7 +205,6 @@
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* RESPONSIVE DESIGN */
         @media (max-width: 800px) {
             .app-container { flex-direction: column-reverse; }
             .controls-sidebar { width: 100%; max-height: 50vh; }
@@ -368,7 +353,7 @@
                     waypoints: [ startLatLng, endLatLng ],
                     router: L.Routing.osrmv1({
                         serviceUrl: `https://router.project-osrm.org/route/v1`,
-                        profile: travelMode // OSRM uses 'driving', 'walking', 'cycling'
+                        profile: travelMode 
                     }),
                     lineOptions: {
                         styles: [{ color: '#009688', opacity: 0.8, weight: 6 }]
@@ -401,11 +386,10 @@
             startInput.addEventListener('keypress', (e) => e.key === 'Enter' && calculateRoute());
             endInput.addEventListener('keypress', (e) => e.key === 'Enter' && calculateRoute());
 
-            // **FIXED**: Use setOptions for the opacity slider
             slider.addEventListener('input', (e) => {
                 heatLayer.setOptions({ opacity: parseInt(e.target.value) / 100 });
             });
-            // 
+        
             heatLayer.setOptions({ opacity: parseInt(slider.value) / 100 });
         });
     </script>
