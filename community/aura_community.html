@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
     <style>
-        /* === MAIN STYLES === */
+        
         * {
             margin: 0;
             padding: 0;
@@ -17,7 +17,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: white;
             min-height: 100vh;
             padding: 20px;
         }
@@ -27,51 +27,63 @@
             margin: 0 auto;
         }
 
-        /* Header */
-        .main-header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
+        
+.main-header {
+    
+    text-align: center;
+    padding: 20px;
+    background-color:transparent;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-        .main-header h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
+.my-button {
+    background-color: transparent;
+    border-color: transparent;
+  
+  padding: 0.5rem 1rem; 
+  
+  
+  border-radius: 9999px;
 
-        .main-header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
+  
+  color: #475569;
 
-        /* Essential Map Style */
+  font-weight: bold;
+  
+  transition-property: color, background-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+}
+
+.my-button:hover {
+  color: #4f46e5;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+
         #communityMap {
-            height: 500px; /* Crucial: Gives the map a visible size */
+            height: 500px; 
             border-radius: 15px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
-        /* === LEAFLET CONTROL ALIGNMENT FIX === */
-        /* Targets the label text next to the checkbox in the map control */
+
         .leaflet-control-layers-list label span {
-            /* Force the text/span element to display inline */
             display: inline;
-            /* Add some margin to separate it from the checkbox */
             margin-left: 5px; 
-            /* Push the entire checkbox/label line down a bit for better vertical centering */
             vertical-align: middle; 
         }
 
-        /* Ensure the input (checkbox) is also aligned */
+    
         .leaflet-control-layers-list input {
             vertical-align: middle;
-            /* Reset default Leaflet margin which can interfere */
+            
             margin: 0; 
-            width: auto; /* Prevent it from stretching full width */
+            width: auto; 
         }
-        /* END LEAFLET CONTROL ALIGNMENT FIX */
+        /* 
 
 
         /* Feature Grid */
@@ -82,7 +94,6 @@
             margin-bottom: 30px;
         }
 
-        /* Feature Cards */
         .feature-card {
             background: #f8fafc;
             border-radius: 20px;
@@ -130,7 +141,6 @@
             line-height: 1.5;
         }
 
-        /* Forms and Inputs */
         .input-group {
             margin-bottom: 15px;
         }
@@ -178,7 +188,6 @@
             background: #22c55e;
         }
 
-        /* Status Messages */
         .status {
             padding: 10px;
             border-radius: 8px;
@@ -211,7 +220,6 @@
             border: 1px solid #bfdbfe;
         }
 
-        /* Lists and Items */
         .items-list {
             max-height: 300px;
             overflow-y: auto;
@@ -262,7 +270,6 @@
             color: #166534;
         }
 
-        /* Leaderboard styles */
         .leaderboard-item {
             display: flex;
             align-items: center;
@@ -342,8 +349,14 @@
     <div class="container">
         
         <header class="main-header">
-            <h1>🌤️ Auracast Community</h1>
+            <h1>Auracast - Community</h1>
             <p>Join forces for cleaner air in your neighborhood</p>
+            <div class="my-buttons" style="display: flex; justify-content: center; align-items: center;margin-top: 10px;">
+                <a href="../index.html"><button class="my-button">HOME</button></a>
+                <a href="../map/mainmap.html"><button class="my-button">MAP</button></a>
+                <a href="../symptomTracker/symptom.html"><button class="my-button">SYMPTOM TRACKER</button></a>
+                <a href="../route/safePlanner.html"><button class="my-button">ROUTE PLANNER</button></a>
+            </div>
         </header>
 
         <div id="communityMap"></div>
@@ -401,7 +414,7 @@
                 
                 <form id="clean-spot-form">
                     <div class="input-group">
-                        <input type="text" id="spotName" name="spotName" placeholder="Name of the spot..." required>
+                        <input type="text" id="spotName" name="spotName" placeholder="Name the nearby Landmark.." required>
                         <select id="spotType" name="spotType">
                             <option value="park">🏞️ Park</option>
                             <option value="cafe">☕ Cafe</option>
@@ -512,18 +525,15 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
-        // --- 1. MAP INITIALIZATION ---
         const map = L.map('communityMap').setView([34.0522, -118.2437], 10); 
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // --- 2. LAYER GROUPS FOR COMMUNITY DATA ---
         const pollutionReportsLayer = L.layerGroup().addTo(map);
         const cleanSpotsLayer = L.layerGroup().addTo(map);
 
-        // --- 3. CUSTOM MARKER ICONS ---
         const PollutionIcon = L.icon({
             iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -536,7 +546,6 @@
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
         });
 
-        // --- 4. GEOCODING FUNCTION (Global helper) ---
         async function geocodeAddress(address) {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
             try {
@@ -552,9 +561,7 @@
             return null;
         }
 
-        // --- 5. LAYER CONTROL SETUP ---
         const overlayMaps = {
-            // The <span> tags with styling are what caused the original misalignment
             "<span style='color: red;'>🚨 Community Pollution Reports</span>": pollutionReportsLayer,
             "<span style='color: green;'>✅ Recommended Clean Spots</span>": cleanSpotsLayer
         };
@@ -564,9 +571,7 @@
     </script> 
     
     <script>
-        // --- SIMULATED LEADERBOARD DATA ---
         const neighborhoodData = [
-            // rank, name, stats, aqi, top (boolean for 'top10' filter)
             { rank: 1, name: 'Green Valley', stats: '125 reports • 98% positive', aqi: 12, top: true },
             { rank: 2, name: 'Riverside Park', stats: '89 reports • 95% positive', aqi: 15, top: true },
             { rank: 3, name: 'Oakwood Heights', stats: '156 reports • 92% positive', aqi: 22, top: true },
@@ -579,7 +584,6 @@
             { rank: 18, name: 'The Swamp', stats: '50 reports • 30% positive', aqi: 85, top: false },
         ];
 
-        // --- SIMULATED 'MY AREA' DATA ---
         const myAreaStaticData = {
             rank: 8, 
             name: 'City Center', 
@@ -587,17 +591,15 @@
             aqi: 35
         };
         
-        // References to HTML elements
         const pollutionForm = document.getElementById('pollution-report-form');
         const reportStatus = document.getElementById('reportStatus');
         const reportsList = document.getElementById('recentReports');
         const cleanSpotForm = document.getElementById('clean-spot-form');
-        const spotStatus = document.getElementById('spotStatus'); // Using this for temporary leaderboard status
+        const spotStatus = document.getElementById('spotStatus'); 
         const spotsList = document.getElementById('cleanSpotsList');
         const leaderboardList = document.getElementById('leaderboard'); 
         const zoneFilter = document.getElementById('zoneFilter'); 
 
-        // Feature 1: Pollution Reporting Handler
         pollutionForm.addEventListener('submit', async function(event) {
             event.preventDefault(); 
             
@@ -637,7 +639,6 @@
         });
 
 
-        // Feature 2: Clean Air Spots Handler
         cleanSpotForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             
@@ -679,28 +680,25 @@
         });
 
 
-        // --- LEADERBOARD & UTILITY FUNCTIONS ---
         
         function getAqiColor(aqi) {
-            if (aqi <= 15) return '#4ade80'; // Green
-            if (aqi <= 35) return '#fbbf24'; // Yellow/Orange
-            return '#f87171'; // Red
+            if (aqi <= 15) return '#4ade80'; 
+            if (aqi <= 35) return '#fbbf24'; 
+            return '#f87171'; 
         }
 
-        /**
-         * Renders the neighborhood data based on the selected filter.
-         */
+        
         function renderLeaderboard(filter) {
-            leaderboardList.innerHTML = ''; // Clear current content
+            leaderboardList.innerHTML = ''; 
 
             if (filter === 'my-area') {
-                // Special rendering for 'My Area'
+                
                 const area = myAreaStaticData;
                 
-                // Add a simulated list of neighborhoods near 'My Area' for context
+                
                 const nearMeContent = neighborhoodData
-                    .filter(item => item.rank !== area.rank) // Exclude 'My Area' itself if it was in the full list
-                    .filter(item => item.rank > 5 && item.rank < 12) // Show only nearby rankings
+                    .filter(item => item.rank !== area.rank) 
+                    .filter(item => item.rank > 5 && item.rank < 12) 
                     .map(item => `
                         <div class="leaderboard-item" style="padding-left: 10px; opacity: 0.8; border: none;">
                             <div class="rank" style="font-size: 1.2em; color: #718096;">#${item.rank}</div>
@@ -711,7 +709,7 @@
                         </div>
                     `).join('');
 
-                // Display the primary 'My Area' data prominently
+                
                 leaderboardList.innerHTML = `
                     <h4 style="margin: 0 0 10px; color: #2d3748;">Your Neighborhood Focus</h4>
                     <div class="leaderboard-item" style="border-radius: 10px; background: #fff; padding: 15px; border: 2px solid #4ade80; margin-bottom: 20px;">
@@ -729,13 +727,12 @@
                 return;
             }
 
-            // Standard list rendering for 'all' and 'top10'
+        
             const filteredData = neighborhoodData.filter(item => {
                 if (filter === 'all') return true;
-                return item.top === true; // 'top10' filter uses the 'top' tag
+                return item.top === true; 
             });
 
-            // Sort by rank
             filteredData.sort((a, b) => a.rank - b.rank);
 
             if (filteredData.length === 0) {
@@ -758,29 +755,21 @@
             });
         }
 
-        // --- IMPROVED refreshLeaderboard FUNCTION WITH alert() ---
         function refreshLeaderboard() {
             const filter = zoneFilter.value;
-            // Show "refreshing" message under the Clean Air Spots status area
             updateStatus(spotStatus, `🔄 Refreshing leaderboard for ${getFilterText(filter)}...`, "info");
             
-            // Simulate API delay, then render the data
             setTimeout(() => {
                 renderLeaderboard(filter);
                 
-                // --- Use a simple alert() pop-up for immediate feedback ---
                 alert("✅ Leaderboard rankings updated successfully!");
                 
-                // Clear the temporary info status message
                 updateStatus(spotStatus, "", "info"); 
             }, 500);
         }
         
-        // Initial setup on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // Render the leaderboard immediately on load using the default 'all' filter
             renderLeaderboard(zoneFilter.value);
-            // Add event listener to the dropdown filter
             zoneFilter.addEventListener('change', refreshLeaderboard);
         });
 
