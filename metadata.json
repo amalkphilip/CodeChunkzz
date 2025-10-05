@@ -1,0 +1,5 @@
+{
+  "name": "Air Quality Dashboard",
+  "description": "A modern dashboard to check the real-time air quality index (AQI) for any city. Get detailed pollutant information, a 7-day forecast, and AI-powered health recommendations to stay informed and breathe better.",
+  "requestFramePermissions": []
+}
